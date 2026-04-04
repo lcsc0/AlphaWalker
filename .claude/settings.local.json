@@ -48,7 +48,11 @@
       "Bash(find /Users/Lucas/AlphaWalker -name *.jbc)",
       "Bash(/opt/homebrew/Caskroom/miniconda/base/bin/jac run:*)",
       "Bash(/opt/homebrew/Caskroom/miniconda/base/bin/jac check:*)",
-      "Bash(grep -r \"base44\\\\|Base44\" /Users/Lucas/AlphaWalker --include=*.jac --include=*.py --include=*.md -l)"
+      "Bash(grep -r \"base44\\\\|Base44\" /Users/Lucas/AlphaWalker --include=*.jac --include=*.py --include=*.md -l)",
+      "Bash(find . -type f -name *.d.ts)",
+      "WebSearch",
+      "WebFetch(domain:docs.insforge.dev)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }

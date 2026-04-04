@@ -12,6 +12,59 @@ The core insight is that LLMs are better at *arguing a position* than at hedging
 
 ---
 
+## Quick Start
+
+**Prerequisites:** Python 3.10+, Node 18+ (via nvm), an `OPENAI_API_KEY`.
+
+```bash
+# 1. Install Python dependencies
+pip install -r requirements.txt
+
+# 2. Install frontend dependencies
+cd frontend && npm install && cd ..
+
+# 3. Set your LLM key
+export OPENAI_API_KEY=sk-...
+
+# 4. Start everything
+./start.sh
+```
+
+- Backend → `http://localhost:8000`
+- Frontend → `http://localhost:3000`
+
+**Manual start (two terminals):**
+
+```bash
+# Terminal 1 — backend
+ALPHAWALKER_API_KEY=dev-secret uvicorn api.main:app --host 0.0.0.0 --port 8000
+
+# Terminal 2 — frontend
+cd frontend && npm run dev -- --port 3000
+```
+
+**CLI only (no frontend needed):**
+
+```bash
+jac run main.jac
+```
+
+---
+
+## Web Dashboard
+
+The React frontend (`frontend/`) provides a three-tab dashboard:
+
+| Tab | Description |
+|---|---|
+| **Dashboard** | Compact verdict cards for all analyzed tickers — color-coded green/yellow/red |
+| **Analysis** | Full breakdown: bull/bear confidence bar chart, judge radial gauge, expandable argument panels |
+| **History** | Past analysis runs pulled from the Insforge database |
+
+Enter a comma-separated list of tickers in the input bar (e.g. `NVDA, AAPL, TSLA`) and click **Analyze**. Results stream back from `POST /v1/analyze-tickers` and are saved to the cloud database automatically.
+
+---
+
 ## Agent Architecture
 
 ### The Two Coalitions
@@ -99,7 +152,7 @@ Both coalitions traverse the graph **simultaneously and independently**. The `Ju
    Bull and Bear nodes are attached on opposing sides of each Asset node
 
 3. PARALLEL COALITION SWEEP
-   BullWalker and BearWalker traverse simultaneously
+   BullCoalitionWalker and BearCoalitionWalker traverse simultaneously
    Each sub-agent (news, quant, macro) researches its domain
    Findings are deposited onto the coalition's node
 
@@ -301,9 +354,9 @@ AlphaWalker maps cleanly onto Jac's Object Spatial Programming model:
 
 | Concept | Jac Implementation |
 |---|---|
-| Asset node | `node asset` with ticker, price data, and attached coalition findings |
-| Bull/Bear positioning | Bull and Bear nodes on opposite edges of each Asset node |
-| Coalition research | Walkers (`BullWalker`, `BearWalker`) traversing simultaneously |
+| Asset node | `Asset` node with ticker, price data, and attached coalition findings |
+| Bull/Bear positioning | `BullNode` and `BearNode` on opposite edges of each `Asset` node |
+| Coalition research | Walkers (`BullCoalitionWalker`, `BearCoalitionWalker`) traversing simultaneously |
 | LLM-powered argumentation | `by llm()` with directed argumentative system prompts |
 | Judge synthesis | `JudgeWalker` as a final traversal that reads both sides before disengaging |
 | Temporal graph | Each walker pass appends a timestamped node rather than overwriting; history is preserved in the graph |

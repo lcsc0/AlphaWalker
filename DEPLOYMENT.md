@@ -6,9 +6,38 @@
 
 ```bash
 python3 -m pip install -r requirements.txt
+cd frontend && npm install && cd ..
 ```
 
-2. Start the API:
+2. Set environment variables (copy the block below into a `.env` or export directly):
+
+```bash
+export OPENAI_API_KEY=sk-...          # required for Jac LLM calls
+export ALPHAWALKER_API_KEY=dev-secret # shared secret for X-API-Key header
+# Optional:
+# export ALPHAWALKER_DB_PATH=data/analysis_runs.db
+# export ALPHAWALKER_USE_JAC=1
+# export ALPHAWALKER_JAC_FALLBACK=1
+# export ALPHAWALKER_JAC_TIMEOUT=900
+```
+
+3. Start everything with one command:
+
+```bash
+./start.sh
+```
+
+Or start the API and frontend separately:
+
+```bash
+# Terminal 1
+ALPHAWALKER_API_KEY=dev-secret uvicorn api.main:app --host 0.0.0.0 --port 8000
+
+# Terminal 2
+cd frontend && npm run dev -- --port 3000
+```
+
+**Backend only** (no Node required):
 
 ```bash
 ALPHAWALKER_API_KEY=dev-secret uvicorn api.main:app --host 0.0.0.0 --port 8000
@@ -16,13 +45,13 @@ ALPHAWALKER_API_KEY=dev-secret uvicorn api.main:app --host 0.0.0.0 --port 8000
 
 Most of `api` is implemented in `.jac` files; `jaclang` registers an import hook so `api.main:app` resolves to the compiled FastAPI app. `api/__init__.py` imports `jaclang` first so `import api.*` works from any entrypoint. The Jac graph subprocess is spawned from `api/jac_bridge.py` (Python; avoids a Jac codegen bug with `subprocess.run` kwargs) by running `api/_jac_worker_main.py`.
 
-3. Health check:
+4. Health check:
 
 ```bash
 curl http://localhost:8000/health
 ```
 
-4. **Synchronous ticker verdicts** (same Jac graph as async runs; can take minutes per ticker — increase proxy timeouts on hosted platforms):
+5. **Synchronous ticker verdicts** (same Jac graph as async runs; can take minutes per ticker — increase proxy timeouts on hosted platforms):
 
 ```bash
 curl -sS -X POST http://localhost:8000/v1/analyze-tickers \
@@ -58,16 +87,12 @@ Local Ollama usually ignores the key; **Ollama Cloud** (if you use it) may requi
 
 4. If outputs still hit the wrong model, check [Jac byLLM usage](https://jac-lang.org/learn/jac-byllm/usage) for how to pin an `ollama/...` model for your `jaclang` version.
 
-Copy [.env.example](.env.example) to `.env`, fill in values, and **do not commit** `.env`.
+Do not commit `.env` or any file containing secrets.
 
-## Managed host notes (step 2 — public URL)
+## Managed host notes
 
 - Railway, Render, and Fly.io can run: `uvicorn api.main:app --host 0.0.0.0 --port $PORT` (use `$PORT` where the platform provides it).
 - Set **the same** env vars on the host as locally (`ALPHAWALKER_API_KEY`, LLM/Ollama vars, optional `ALPHAWALKER_DB_PATH`).
 - Jac runs are slow; raise HTTP/proxy timeouts on the host (often 60s+ default is too low for `/v1/analyze-tickers`).
 - Persist `data/analysis_runs.db` on a mounted volume if you want SQLite run history across deploys.
-- **Base44 (step 3):** in the Base44 project, set secrets `ALPHAWALKER_API_BASE_URL` (your public `https://...` with **no** trailing slash) and `ALPHAWALKER_API_KEY` (must match `ALPHAWALKER_API_KEY` on the API host). See [base44/README.md](base44/README.md).
-
-## Base44 code: keep in repo vs only in Base44
-
-The TypeScript in [base44/functions/](base44/functions/) is already in this repo as a **template** you can version and edit in git. Base44 still needs a **copy** of those functions inside the Base44 app to execute them; the platform does not pull from GitHub automatically unless you set that up. Practical approach: treat this folder as source of truth, then paste or sync into Base44 when you change behavior—**copying the whole generated Base44 app** into this monorepo is optional and mainly helps if you want one git tree for UI + API; it does not replace deploying both sides.
+- For the React frontend, run `npm run build` inside `frontend/` and serve `frontend/dist/` as static files, or deploy it separately (Netlify, Vercel, etc.) pointed at the hosted API URL.
