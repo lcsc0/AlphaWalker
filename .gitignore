@@ -11,6 +11,7 @@ venv/
 .env.local
 docs/
 
+
 # Jac / local data
 .jac/cache/
 .jac/bin/
