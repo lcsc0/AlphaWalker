@@ -1,0 +1,29 @@
+{
+  "includeCoAuthoredBy": false,
+  "permissions": {
+    "allow": [
+      "Bash(pip index:*)",
+      "Bash(pip install:*)",
+      "Bash(pip show:*)",
+      "Bash(pip list:*)",
+      "Bash(jac --help)",
+      "mcp__mcp-registry__search_mcp_registry",
+      "Bash(git -C \"//wsl$/Ubuntu-24.04/home/ychae/AlphaWalker/AlphaWalker\" status)",
+      "Bash(wsl -d Ubuntu-24.04 -- bash -c \"cd /home/ychae/AlphaWalker/AlphaWalker && git status\")",
+      "Bash(wsl -d Ubuntu-24.04 -- bash -c \"cd /home/ychae/AlphaWalker/AlphaWalker && git diff HEAD\")",
+      "Bash(wsl -d Ubuntu-24.04 -- bash -c \"cd /home/ychae/AlphaWalker/AlphaWalker && git log --oneline -10\")",
+      "mcp__jac__validate_jac",
+      "Bash(jac check:*)",
+      "Read(///wsl$/Ubuntu-24.04/home/ychae/AlphaWalker/AlphaWalker/**)",
+      "Bash(wsl -d Ubuntu-24.04 -- ls -la /home/ychae/AlphaWalker/AlphaWalker/main.jac)",
+      "Bash(wsl -d Ubuntu-24.04 -- bash -c \"cd /home/ychae/AlphaWalker/AlphaWalker && jac check main.jac\")",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(where gh:*)",
+      "Bash(cmd.exe /c \"where gh\")",
+      "Bash(\"/mnt/c/Program Files/GitHub CLI/gh.exe\" --version)",
+      "Bash(\"/mnt/c/Users/ychae/AppData/Local/GitHub CLI/gh.exe\" --version)"
+    ]
+  }
+}
