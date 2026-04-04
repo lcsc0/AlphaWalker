@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+.env
+.env.local
+
+# Jac / local data
+.jac/cache/
+.jac/bin/
+.jac/client/
+**/.jac/cache/
+*.db
+*.db-shm
+*.db-wal
+data/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store

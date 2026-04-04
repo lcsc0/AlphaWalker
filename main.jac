@@ -1,41 +1,31 @@
-"""Entry point for AlphaWalker."""
+"""Entry point for AlphaWalker CLI — delegates graph execution to `alphawalker_pipeline.jac` (same as FastAPI worker)."""
 
-import from .graph.nodes { PortfolioNode, Asset, VerdictNode }
-import from .graph.edges { BelongsToPortfolio, HasVerdict }
-import from .agents.bull_coalition_walker { BullCoalitionWalker }
-import from .agents.bear_coalition_walker { BearCoalitionWalker }
-import from .agents.judge_agent { JudgeWalker }
+import json;
+import from alphawalker_pipeline { run_pipeline_for_tickers }
 
-with entry {
-    portfolio = PortfolioNode(name="AlphaWalker Portfolio");
-    root() ++> portfolio;
-
+with entry:__main__ {
     tickers = ["NVDA", "AAPL", "TSLA"];
+    raw = run_pipeline_for_tickers(tickers);
+    rows = json.loads(raw);
 
-    for ticker in tickers {
-        asset = Asset(ticker=ticker);
-        portfolio +>:BelongsToPortfolio:+> asset;
+    for row in rows {
+        ticker = str(row.get("ticker", "") or "");
+        verdict = str(row.get("verdict", "") or "");
+        jc = row.get("judge_confidence", 0);
+        if jc is None {
+            jc = 0;
+        }
+        rationale = str(row.get("rationale", "") or "");
+        condition = str(row.get("condition", "") or "");
 
-        # Run bull and bear coalitions
-        asset spawn BullCoalitionWalker(ticker=ticker);
-        asset spawn BearCoalitionWalker(ticker=ticker);
-
-        # Judge synthesizes verdict from both sides
-        asset spawn JudgeWalker();
-
-        # Read verdict from graph
-        verdicts = [asset ->:HasVerdict:->][?:VerdictNode];
-        if len(verdicts) > 0 {
-            v = verdicts[0];
-            print(f"\n{'='*60}");
-            print(f"  {ticker}");
-            print(f"{'='*60}");
-            print(f"  Verdict:    {v.verdict}");
-            print(f"  Confidence: {v.judge_confidence}%");
-            print(f"  Rationale:  {v.rationale}");
-            if v.condition {
-                print(f"  Condition:  {v.condition}");
-            }
+        print(f"\n{'='*60}");
+        print(f"  {ticker}");
+        print(f"{'='*60}");
+        print(f"  Verdict:    {verdict}");
+        print(f"  Confidence: {jc}%");
+        print(f"  Rationale:  {rationale}");
+        if condition != "" {
+            print(f"  Condition:  {condition}");
         }
     }
 
