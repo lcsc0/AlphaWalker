@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import tempfile
 import time
 import unittest
@@ -14,12 +15,19 @@ from api.storage import RunStorage
 
 class AnalysisServiceTests(unittest.TestCase):
     def setUp(self) -> None:
+        self._prev_use_jac = os.environ.get("ALPHAWALKER_USE_JAC")
+        os.environ["ALPHAWALKER_USE_JAC"] = "0"
         self.temp_dir = tempfile.TemporaryDirectory()
         db_path = Path(self.temp_dir.name) / "runs.db"
         self.storage = RunStorage(str(db_path))
         self.service = AnalysisService(self.storage)
 
     def tearDown(self) -> None:
+        self.service.shutdown()
+        if self._prev_use_jac is None:
+            os.environ.pop("ALPHAWALKER_USE_JAC", None)
+        else:
+            os.environ["ALPHAWALKER_USE_JAC"] = self._prev_use_jac
         self.temp_dir.cleanup()
 
     def test_submit_normalizes_duplicate_tickers_and_weights(self) -> None:
@@ -52,7 +60,9 @@ class AnalysisServiceTests(unittest.TestCase):
                     Holding(ticker="TSLA", weight=0.4),
                 ],
                 as_of_date="2026-04-04",
-            )
+            ),
+            options=AnalysisOptions(),
+            client_context=ClientContext(),
         )
 
         submitted = self.service.submit_run(request)
@@ -79,7 +89,9 @@ class AnalysisServiceTests(unittest.TestCase):
             portfolio=PortfolioInput(
                 holdings=[Holding(ticker="AAPL", weight=1.0)],
                 as_of_date="2026-04-04",
-            )
+            ),
+            options=AnalysisOptions(),
+            client_context=ClientContext(),
         )
         submitted = self.service.submit_run(request)
         self.storage.update_run(submitted.run_id, status="running", progress=0.4)
