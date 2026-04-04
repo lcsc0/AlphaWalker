@@ -1,5 +1,16 @@
-# agents/bear/bear_news_agent.jac
-# Walker: Bear News Agent
-# Directive: Surface negative headlines — regulatory risk, litigation, insider selling,
-# management turnover, adverse press coverage, geopolitical exposure.
-# Deposits findings + confidence score (0-100) onto BearNode before disengaging.
+"""Bear News Agent — surfaces negative headlines and risk catalysts."""
+
+import from ...graph.nodes { BearNode }
+import from ...prompts.bear_prompts { analyze_bear_news }
+
+walker BearNewsAgent {
+    has ticker: str;
+
+    can analyze with BearNode entry {
+        result = analyze_bear_news(ticker=self.ticker);
+        here.news_finding = result.findings;
+        here.news_confidence = result.confidence;
+        report result;
+        disengage;
+    }
+}
