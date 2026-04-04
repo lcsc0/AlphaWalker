@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "jac-mcp": {
+      "command": "C:\\Users\\ychae\\AppData\\Roaming\\Python\\Python314\\Scripts\\jac.exe",
+      "args": ["mcp"]
+    },
+    "jac": {
+      "command": "C:\\Users\\ychae\\AppData\\Roaming\\Python\\Python314\\Scripts\\jac.exe",
+      "args": ["mcp"]
+    }
+  }
+}
