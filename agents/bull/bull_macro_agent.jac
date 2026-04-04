@@ -1,5 +1,16 @@
-# agents/bull/bull_macro_agent.jac
-# Walker: Bull Macro Agent
-# Directive: Identify favorable macro conditions — rate environment, sector tailwinds,
-# capital flow trends, sovereign/institutional accumulation signals.
-# Deposits findings + confidence score (0-100) onto BullNode before disengaging.
+"""Bull Macro Agent — identifies favorable macroeconomic tailwinds."""
+
+import from ...graph.nodes { BullNode }
+import from ...prompts.bull_prompts { analyze_bull_macro }
+
+walker BullMacroAgent {
+    has ticker: str;
+
+    can analyze with BullNode entry {
+        result = analyze_bull_macro(ticker=self.ticker);
+        here.macro_finding = result.findings;
+        here.macro_confidence = result.confidence;
+        report result;
+        disengage;
+    }
+}
