@@ -49,3 +49,12 @@ node VerdictNode {
         rationale: str = "",
         condition: str = "";
 }
+
+node PortfolioAnnotation {
+    has annotation: str = "",
+        correlated_theme: str = "",
+        hedging_gaps: str = "",
+        portfolio_conviction: str = "",
+        timestamp: str = "",
+        run_number: int = 0;
+}

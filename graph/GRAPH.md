@@ -92,6 +92,21 @@ Stores the `JudgeAgent`'s ruling for one asset after reading both coalitions. Po
 
 ---
 
+### `PortfolioAnnotation`
+
+Stores the `PortfolioMetaAgent`'s cross-asset reasoning output. A new node is created each run (append-only, like `TemporalSnapshot`) so the system can track how portfolio-level insights evolve over time. Connected to `PortfolioNode` via `HasAnnotation`.
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `annotation` | `str` | `""` | Executive summary — 2-4 sentences for the top of the investment memo |
+| `correlated_theme` | `str` | `""` | Shared macro thesis across multiple holdings (e.g. "AI capex") |
+| `hedging_gaps` | `str` | `""` | Missing hedges or unbalanced exposures |
+| `portfolio_conviction` | `str` | `""` | Whether per-ticker verdicts form a coherent allocation |
+| `timestamp` | `str` | `""` | ISO date of this run |
+| `run_number` | `int` | `0` | Sequential run counter |
+
+---
+
 ## Edges
 
 ### `BelongsToPortfolio`
@@ -141,11 +156,24 @@ Asset --[HasVerdict]--> VerdictNode
 
 ---
 
+### `HasAnnotation`
+
+Connects the `PortfolioNode` to its `PortfolioAnnotation` history. New annotations are appended each run. The `MemoFormatter` reads the most recent annotation to include in the output memo.
+
+```
+PortfolioNode --[HasAnnotation]--> PortfolioAnnotation (run 1)
+PortfolioNode --[HasAnnotation]--> PortfolioAnnotation (run N)
+```
+
+---
+
 ## Full Graph Topology
 
 ```
 root
 └── PortfolioNode
+    ├──[HasAnnotation]── PortfolioAnnotation (run 1)
+    ├──[HasAnnotation]── PortfolioAnnotation (run N)
     └──[BelongsToPortfolio]── Asset (e.g. NVDA)
                                ├──[HasCoalition(side="bull")]── BullNode
                                │                                 ├──[HasSnapshot]── TemporalSnapshot (run 1)
