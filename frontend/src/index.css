@@ -1,0 +1,3 @@
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; background-color: #0f172a; color: #f1f5f9; }
+::placeholder { color: #64748b; }

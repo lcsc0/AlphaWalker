@@ -1,13 +1,14 @@
 """FastAPI application exposing AlphaWalker analysis runs.
 
 Analysis executes the Jac multi-agent graph (`alphawalker_pipeline.jac`) by default,
-with SQLite-backed run state for Base44 polling. See `DEPLOYMENT.md` for env vars.
+with SQLite-backed run state for polling. See `DEPLOYMENT.md` for env vars.
 """
 
 import os;
 import from pathlib { Path }
 import from typing { Annotated }
 import from fastapi { Depends, FastAPI, Header, HTTPException, Query }
+import from fastapi.middleware.cors { CORSMiddleware }
 import from pydantic { BaseModel }
 
 import from api.models {
@@ -18,6 +19,7 @@ import from api.models {
     PortfolioInput
 }
 import from api.jac_bridge { run_jac_pipeline }
+import from api.prices { fetch_historical_prices }
 import from api.service { AnalysisService }
 import from api.storage { RunStorage }
 
@@ -38,7 +40,7 @@ class AnalysisOptionsIn(BaseModel) {
 }
 
 class ClientContextIn(BaseModel) {
-    has source: str = "base44";
+    has source: str = "alphawalker";
     has session_id: str | None = None;
 }
 
@@ -59,6 +61,16 @@ glob storage = RunStorage(DB_PATH);
 glob service = AnalysisService(storage);
 glob startup_recover_count = service.recover_incomplete_runs();
 glob app = FastAPI(title="AlphaWalker API", version="0.1.0");
+
+with entry {
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:3000", "http://127.0.0.1:5173"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"]
+    );
+}
 
 def require_api_key(x_api_key: Annotated[str | None, Header()] = None) {
     if API_KEY == "" {
@@ -207,4 +219,18 @@ def get_analysis_events(
         "events": [event.to_dict() for event in events],
         "next_cursor": next_cursor
     };
+}
+
+@app.get("/v1/historical-prices/{ticker}", dependencies=[Depends(require_api_key)])
+def get_historical_prices(ticker: str, period: str = "1y") -> dict {
+    allowed = ["1mo", "3mo", "6mo", "1y", "2y", "5y"];
+    if period not in allowed {
+        raise HTTPException(status_code=400, detail=f"period must be one of {allowed}");
+    }
+    try {
+        prices = fetch_historical_prices(ticker, period);
+    } except Exception as exc {
+        raise HTTPException(status_code=502, detail=str(exc));
+    }
+    return {"ticker": ticker.upper(), "prices": prices};
 }

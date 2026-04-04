@@ -23,7 +23,32 @@
       "Bash(where gh:*)",
       "Bash(cmd.exe /c \"where gh\")",
       "Bash(\"/mnt/c/Program Files/GitHub CLI/gh.exe\" --version)",
-      "Bash(\"/mnt/c/Users/ychae/AppData/Local/GitHub CLI/gh.exe\" --version)"
+      "Bash(\"/mnt/c/Users/ychae/AppData/Local/GitHub CLI/gh.exe\" --version)",
+      "Bash(find /Users/Lucas/AlphaWalker/.agents/skills/insforge* -type f -name *.md -o -name *.txt)",
+      "Bash(python -c \"import jaclang; print\\(jaclang.__version__\\)\")",
+      "Bash(pip3 install:*)",
+      "Bash(python3.12 --version)",
+      "Bash(pyenv versions:*)",
+      "Bash(conda info:*)",
+      "Bash(npm --version)",
+      "Bash(bun --version)",
+      "Bash(brew list:*)",
+      "Read(//usr/local/bin/**)",
+      "Read(//opt/homebrew/bin/**)",
+      "Bash(brew --version)",
+      "Bash(/opt/homebrew/Caskroom/miniconda/base/bin/python3 --version)",
+      "Bash(/opt/homebrew/Caskroom/miniconda/base/bin/pip3 install:*)",
+      "Bash(/opt/homebrew/Caskroom/miniconda/base/bin/python3 -m jac client frontend/app.jac --help)",
+      "Bash(/opt/homebrew/Caskroom/miniconda/base/bin/jac --help)",
+      "Bash(/opt/homebrew/Caskroom/miniconda/base/bin/jac)",
+      "Bash(ls /opt/homebrew/Caskroom/miniconda/base/bin/jac*)",
+      "Bash(/opt/homebrew/Caskroom/miniconda/base/bin/jac start:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(/opt/homebrew/Caskroom/miniconda/base/bin/jac build:*)",
+      "Bash(find /Users/Lucas/AlphaWalker -name *.jbc)",
+      "Bash(/opt/homebrew/Caskroom/miniconda/base/bin/jac run:*)",
+      "Bash(/opt/homebrew/Caskroom/miniconda/base/bin/jac check:*)",
+      "Bash(grep -r \"base44\\\\|Base44\" /Users/Lucas/AlphaWalker --include=*.jac --include=*.py --include=*.md -l)"
     ]
   }
 }

@@ -9,6 +9,7 @@ __pycache__/
 venv/
 .env
 .env.local
+docs/
 
 # Jac / local data
 .jac/cache/
@@ -25,3 +26,18 @@ data/
 .vscode/
 *.swp
 .DS_Store
+
+# InsForge & AI agent skills
+.insforge
+.agent
+.agents
+.augment
+.claude
+.cline
+.github/copilot*
+.kilocode
+.qoder
+.qwen
+.roo
+.trae
+.windsurf

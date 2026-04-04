@@ -52,7 +52,7 @@ obj AnalysisOptions {
 }
 
 obj ClientContext {
-    has source: str = "base44";
+    has source: str = "alphawalker";
     has session_id: str | None = None;
 
     def to_dict -> dict {
