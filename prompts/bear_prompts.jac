@@ -96,3 +96,31 @@ CONFIDENCE CALIBRATION (0-100):
 OUTPUT FORMAT:
 FINDINGS: <2-5 sentences linking specific macro conditions to a bearish case for this asset>
 CONFIDENCE: <integer 0-100>""";
+
+obj BearFinding {
+    has findings: str,
+        confidence: int;
+}
+
+"""Analyze recent news flow for the given ticker and build the strongest
+possible bear case. Cite specific negative catalysts with sources and dates.
+Return findings and a confidence score from 0-100 reflecting evidence quality."""
+def analyze_bear_news(ticker: str) -> BearFinding by llm(
+    incl_info={"directive": BEAR_NEWS_PROMPT}
+);
+
+"""Analyze quantitative signals — price action, technicals, and fundamental
+metrics — for the given ticker and build the bearish case. Use specific
+numbers, percentages, ratios, and price levels.
+Return findings and a confidence score from 0-100 reflecting signal strength."""
+def analyze_bear_quant(ticker: str) -> BearFinding by llm(
+    incl_info={"directive": BEAR_QUANT_PROMPT}
+);
+
+"""Identify macroeconomic headwinds that support avoiding or selling the given
+ticker. Connect big-picture conditions specifically to this asset's fundamentals.
+Return findings and a confidence score from 0-100 reflecting how directly
+macro conditions threaten this specific asset."""
+def analyze_bear_macro(ticker: str) -> BearFinding by llm(
+    incl_info={"directive": BEAR_MACRO_PROMPT}
+);

@@ -1,5 +1,16 @@
-# agents/bear/bear_macro_agent.jac
-# Walker: Bear Macro Agent
-# Directive: Identify macro headwinds — sector rotation out, rate sensitivity,
-# geopolitical exposure, tightening liquidity, commodity price shocks.
-# Deposits findings + confidence score (0-100) onto BearNode before disengaging.
+"""Bear Macro Agent — identifies macroeconomic headwinds."""
+
+import from ...graph.nodes { BearNode }
+import from ...prompts.bear_prompts { analyze_bear_macro }
+
+walker BearMacroAgent {
+    has ticker: str;
+
+    can analyze with BearNode entry {
+        result = analyze_bear_macro(ticker=self.ticker);
+        here.macro_finding = result.findings;
+        here.macro_confidence = result.confidence;
+        report result;
+        disengage;
+    }
+}

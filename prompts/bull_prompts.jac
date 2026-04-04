@@ -92,3 +92,31 @@ CONFIDENCE CALIBRATION (0-100):
 OUTPUT FORMAT:
 FINDINGS: <2-5 sentences linking specific macro conditions to a bullish case for this asset>
 CONFIDENCE: <integer 0-100>""";
+
+obj BullFinding {
+    has findings: str,
+        confidence: int;
+}
+
+"""Analyze recent news flow for the given ticker and build the strongest
+possible bull case. Cite specific positive catalysts with sources and dates.
+Return findings and a confidence score from 0-100 reflecting evidence quality."""
+def analyze_bull_news(ticker: str) -> BullFinding by llm(
+    incl_info={"directive": BULL_NEWS_PROMPT}
+);
+
+"""Analyze quantitative signals — price action, technicals, and fundamental
+metrics — for the given ticker and build the bullish case. Use specific
+numbers, percentages, ratios, and price levels.
+Return findings and a confidence score from 0-100 reflecting signal strength."""
+def analyze_bull_quant(ticker: str) -> BullFinding by llm(
+    incl_info={"directive": BULL_QUANT_PROMPT}
+);
+
+"""Identify macroeconomic tailwinds that support buying the given ticker.
+Connect big-picture conditions specifically to this asset's fundamentals.
+Return findings and a confidence score from 0-100 reflecting how directly
+macro conditions support this specific asset."""
+def analyze_bull_macro(ticker: str) -> BullFinding by llm(
+    incl_info={"directive": BULL_MACRO_PROMPT}
+);
