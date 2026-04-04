@@ -9,3 +9,5 @@ edge HasCoalition {
 edge HasSnapshot {}
 
 edge HasVerdict {}
+
+edge HasAnnotation {}
