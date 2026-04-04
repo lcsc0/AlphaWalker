@@ -1,7 +1,7 @@
 """Bull Quant Agent — reads price action, technicals, and fundamentals for bullish signals."""
 
-import from ...graph.nodes { BullNode }
-import from ...prompts.bull_prompts { analyze_bull_quant }
+import from graph.nodes { BullNode }
+import from prompts.bull_prompts { analyze_bull_quant }
 
 walker BullQuantAgent {
     has ticker: str;

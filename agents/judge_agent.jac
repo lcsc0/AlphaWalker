@@ -1,8 +1,8 @@
 """Judge Agent — neutral synthesis walker."""
 
-import from ..graph.nodes { Asset, BullNode, BearNode, TemporalSnapshot, VerdictNode }
-import from ..graph.edges { HasCoalition, HasSnapshot, HasVerdict }
-import from ..prompts.judge_prompts { JudgeVerdict, synthesize_verdict }
+import from graph.nodes { Asset, BullNode, BearNode, TemporalSnapshot, VerdictNode }
+import from graph.edges { HasCoalition, HasSnapshot, HasVerdict }
+import from prompts.judge_prompts { JudgeVerdict, synthesize_verdict }
 
 def confidence_label(score: int) -> str {
     if score >= 70 {

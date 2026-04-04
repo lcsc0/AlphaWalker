@@ -5,8 +5,8 @@
 # Deposits findings + confidence score (0-100) onto BearNode before disengaging.
 """Bear Quant Agent — flags valuation excess and bearish technicals."""
 
-import from ...graph.nodes { BearNode }
-import from ...prompts.bear_prompts { analyze_bear_quant }
+import from graph.nodes { BearNode }
+import from prompts.bear_prompts { analyze_bear_quant }
 
 walker BearQuantAgent {
     has ticker: str;

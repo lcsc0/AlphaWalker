@@ -1,0 +1,12 @@
+[project]
+name = "AlphaWalker"
+version = "0.1.0"
+entry-point = "main.jac"
+
+[test]
+directory = "tests"
+
+[dependencies]
+
+[dev-dependencies]
+watchdog = ">=3.0.0"

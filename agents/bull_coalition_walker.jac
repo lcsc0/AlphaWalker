@@ -1,10 +1,10 @@
 """Bull Coalition Walker — orchestrates the three bull sub-agents."""
 
-import from ..graph.nodes { Asset, BullNode, TemporalSnapshot }
-import from ..graph.edges { HasCoalition, HasSnapshot }
-import from .bull.bull_news_agent { BullNewsAgent }
-import from .bull.bull_quant_agent { BullQuantAgent }
-import from .bull.bull_macro_agent { BullMacroAgent }
+import from graph.nodes { Asset, BullNode, TemporalSnapshot }
+import from graph.edges { HasCoalition, HasSnapshot }
+import from agents.bull.bull_news_agent { BullNewsAgent }
+import from agents.bull.bull_quant_agent { BullQuantAgent }
+import from agents.bull.bull_macro_agent { BullMacroAgent }
 
 walker BullCoalitionWalker {
     has ticker: str;

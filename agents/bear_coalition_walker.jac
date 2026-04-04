@@ -1,10 +1,10 @@
 """Bear Coalition Walker — orchestrates the three bear sub-agents."""
 
-import from ..graph.nodes { Asset, BearNode, TemporalSnapshot }
-import from ..graph.edges { HasCoalition, HasSnapshot }
-import from .bear.bear_news_agent { BearNewsAgent }
-import from .bear.bear_quant_agent { BearQuantAgent }
-import from .bear.bear_macro_agent { BearMacroAgent }
+import from graph.nodes { Asset, BearNode, TemporalSnapshot }
+import from graph.edges { HasCoalition, HasSnapshot }
+import from agents.bear.bear_news_agent { BearNewsAgent }
+import from agents.bear.bear_quant_agent { BearQuantAgent }
+import from agents.bear.bear_macro_agent { BearMacroAgent }
 
 walker BearCoalitionWalker {
     has ticker: str;

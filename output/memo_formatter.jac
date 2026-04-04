@@ -1,10 +1,10 @@
 """Investment committee memo formatter."""
 
-import from ..graph.nodes {
+import from graph.nodes {
     PortfolioNode, Asset, BullNode, BearNode,
     TemporalSnapshot, VerdictNode, PortfolioAnnotation
 }
-import from ..graph.edges {
+import from graph.edges {
     BelongsToPortfolio, HasCoalition, HasSnapshot,
     HasVerdict, HasAnnotation
 }
@@ -52,7 +52,12 @@ def format_trend_line(snapshots: list[TemporalSnapshot], snap_side: str, depth: 
         snapshots,
         key=lambda s: TemporalSnapshot: s.run_number
     );
-    recent: list[TemporalSnapshot] = sorted_snaps[-depth:] if len(sorted_snaps) >= depth else sorted_snaps;
+    recent: list[TemporalSnapshot];
+    if len(sorted_snaps) >= depth {
+        recent = sorted_snaps[-depth:];
+    } else {
+        recent = sorted_snaps;
+    }
     labels: list[str] = [confidence_label(s.confidence) for s in recent];
     trend: str = detect_trend(labels);
     labels_str: str = " → ".join([f"{l:<8}" for l in labels]);

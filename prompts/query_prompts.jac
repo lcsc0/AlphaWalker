@@ -2,7 +2,7 @@
 
 obj QueryAnswer {
     has answer: str,
-        cited_tickers: list,
+        cited_tickers: list[str],
         confidence_note: str;
 }
 

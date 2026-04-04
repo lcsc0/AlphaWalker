@@ -1,14 +1,25 @@
 """Query Walker — natural language Q&A over the live graph."""
 
-import from ..graph.nodes {
+import from graph.nodes {
     PortfolioNode, Asset, BullNode, BearNode,
     TemporalSnapshot, VerdictNode, PortfolioAnnotation
 }
-import from ..graph.edges {
+import from graph.edges {
     BelongsToPortfolio, HasCoalition, HasSnapshot,
     HasVerdict, HasAnnotation
 }
-import from ..prompts.query_prompts { QueryAnswer, answer_query }
+import from prompts.query_prompts { QueryAnswer, answer_query }
+
+obj AssetContextBlockIn {
+    has ticker: str;
+    has sector: str;
+    has price: float;
+    has bull_momentum: str;
+    has bear_momentum: str;
+    has bull: BullNode | None = None;
+    has bear: BearNode | None = None;
+    has verdict: VerdictNode | None = None;
+}
 
 def confidence_label(score: int) -> str {
     if score >= 70 {
@@ -23,49 +34,45 @@ def build_momentum_string(snapshots: list[TemporalSnapshot], depth: int) -> str 
     if len(snapshots) == 0 {
         return "no prior data";
     }
-    sorted_snaps = sorted(snapshots, key=lambda s: TemporalSnapshot: s.run_number);
-    # Limit to most recent N snapshots
+    sorted_snaps: list[TemporalSnapshot] = sorted(
+        snapshots,
+        key=lambda s: TemporalSnapshot: s.run_number
+    );
+    trimmed: list[TemporalSnapshot];
     if len(sorted_snaps) > depth {
-        sorted_snaps = sorted_snaps[-depth:];
+        trimmed = sorted_snaps[-depth:];
+    } else {
+        trimmed = sorted_snaps;
     }
-    labels = [confidence_label(s.confidence) for s in sorted_snaps];
+    labels = [confidence_label(s.confidence) for s in trimmed];
     return " -> ".join(labels);
 }
 
-def build_asset_context_block(
-    ticker: str,
-    sector: str,
-    price: float,
-    bull: BullNode | None,
-    bear: BearNode | None,
-    verdict: VerdictNode | None,
-    bull_momentum: str,
-    bear_momentum: str
-) -> str {
-    lines: list = [];
-    lines.append(f"ASSET: {ticker} | sector={sector} | price={price}");
+def build_asset_context_block(ctx: AssetContextBlockIn) -> str {
+    lines: list[str] = [];
+    lines.append(f"ASSET: {ctx.ticker} | sector={ctx.sector} | price={ctx.price}");
 
-    if bull is not None {
-        lines.append(f"BULL: {bull.argument} | confidence={bull.confidence}%");
-        lines.append(f"  News: {bull.news_finding} ({bull.news_confidence}%) | Quant: {bull.quant_finding} ({bull.quant_confidence}%) | Macro: {bull.macro_finding} ({bull.macro_confidence}%)");
-        lines.append(f"  Momentum: {bull_momentum}");
+    if ctx.bull is not None {
+        lines.append(f"BULL: {ctx.bull.argument} | confidence={ctx.bull.confidence}%");
+        lines.append(f"  News: {ctx.bull.news_finding} ({ctx.bull.news_confidence}%) | Quant: {ctx.bull.quant_finding} ({ctx.bull.quant_confidence}%) | Macro: {ctx.bull.macro_finding} ({ctx.bull.macro_confidence}%)");
+        lines.append(f"  Momentum: {ctx.bull_momentum}");
     } else {
         lines.append("BULL: no data");
     }
 
-    if bear is not None {
-        lines.append(f"BEAR: {bear.argument} | confidence={bear.confidence}%");
-        lines.append(f"  News: {bear.news_finding} ({bear.news_confidence}%) | Quant: {bear.quant_finding} ({bear.quant_confidence}%) | Macro: {bear.macro_finding} ({bear.macro_confidence}%)");
-        lines.append(f"  Momentum: {bear_momentum}");
+    if ctx.bear is not None {
+        lines.append(f"BEAR: {ctx.bear.argument} | confidence={ctx.bear.confidence}%");
+        lines.append(f"  News: {ctx.bear.news_finding} ({ctx.bear.news_confidence}%) | Quant: {ctx.bear.quant_finding} ({ctx.bear.quant_confidence}%) | Macro: {ctx.bear.macro_finding} ({ctx.bear.macro_confidence}%)");
+        lines.append(f"  Momentum: {ctx.bear_momentum}");
     } else {
         lines.append("BEAR: no data");
     }
 
-    if verdict is not None {
-        lines.append(f"VERDICT: {verdict.verdict} | confidence={verdict.judge_confidence}%");
-        lines.append(f"  Rationale: {verdict.rationale}");
-        if verdict.condition {
-            lines.append(f"  Condition: {verdict.condition}");
+    if ctx.verdict is not None {
+        lines.append(f"VERDICT: {ctx.verdict.verdict} | confidence={ctx.verdict.judge_confidence}%");
+        lines.append(f"  Rationale: {ctx.verdict.rationale}");
+        if ctx.verdict.condition {
+            lines.append(f"  Condition: {ctx.verdict.condition}");
         }
     } else {
         lines.append("VERDICT: no verdict");
@@ -76,7 +83,7 @@ def build_asset_context_block(
 
 walker QueryWalker {
     has question: str;
-    has asset_contexts: list = [];
+    has asset_contexts: list[str] = [];
     has portfolio_context: str = "";
     has snapshot_depth: int = 4;
 
@@ -88,11 +95,11 @@ walker QueryWalker {
             sorted_annots = sorted(annotations, key=lambda a: PortfolioAnnotation: a.run_number);
             latest = sorted_annots[-1];
             self.portfolio_context = (
-                f"PORTFOLIO ANNOTATION:\n"
-                f"  Summary: {latest.annotation}\n"
-                f"  Correlated Theme: {latest.correlated_theme}\n"
-                f"  Hedging Gaps: {latest.hedging_gaps}\n"
-                f"  Portfolio Conviction: {latest.portfolio_conviction}"
+                "PORTFOLIO ANNOTATION:\n"
+                + f"  Summary: {latest.annotation}\n"
+                + f"  Correlated Theme: {latest.correlated_theme}\n"
+                + f"  Hedging Gaps: {latest.hedging_gaps}\n"
+                + f"  Portfolio Conviction: {latest.portfolio_conviction}"
             );
         }
 
@@ -107,32 +114,38 @@ walker QueryWalker {
         bull: BullNode | None = None;
         bear: BearNode | None = None;
         verdict: VerdictNode | None = None;
-        bull_momentum = "no prior data";
-        bear_momentum = "no prior data";
+        bull_momentum: str;
+        bear_momentum: str;
 
         if len(bull_nodes) > 0 {
             bull = bull_nodes[0];
             bull_snapshots = [bull ->:HasSnapshot:->][?:TemporalSnapshot];
             bull_momentum = build_momentum_string(bull_snapshots, self.snapshot_depth);
+        } else {
+            bull_momentum = "no prior data";
         }
         if len(bear_nodes) > 0 {
             bear = bear_nodes[0];
             bear_snapshots = [bear ->:HasSnapshot:->][?:TemporalSnapshot];
             bear_momentum = build_momentum_string(bear_snapshots, self.snapshot_depth);
+        } else {
+            bear_momentum = "no prior data";
         }
         if len(verdict_nodes) > 0 {
             verdict = verdict_nodes[0];
         }
 
         block = build_asset_context_block(
-            ticker=here.ticker,
-            sector=here.sector,
-            price=here.price,
-            bull=bull,
-            bear=bear,
-            verdict=verdict,
-            bull_momentum=bull_momentum,
-            bear_momentum=bear_momentum
+            AssetContextBlockIn(
+                ticker=here.ticker,
+                sector=here.sector,
+                price=here.price,
+                bull_momentum=bull_momentum,
+                bear_momentum=bear_momentum,
+                bull=bull,
+                bear=bear,
+                verdict=verdict
+            )
         );
         self.asset_contexts.append(block);
     }
@@ -148,7 +161,7 @@ walker QueryWalker {
         }
 
         # Assemble full graph context
-        sections: list = [];
+        sections: list[str] = [];
         if self.portfolio_context != "" {
             sections.append(self.portfolio_context);
         }

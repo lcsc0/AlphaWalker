@@ -1,7 +1,7 @@
 """Bull News Agent — scans for positive news catalysts."""
 
-import from ...graph.nodes { BullNode }
-import from ...prompts.bull_prompts { analyze_bull_news }
+import from graph.nodes { BullNode }
+import from prompts.bull_prompts { analyze_bull_news }
 
 walker BullNewsAgent {
     has ticker: str;

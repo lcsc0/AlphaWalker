@@ -1,7 +1,7 @@
 """Bear News Agent — surfaces negative headlines and risk catalysts."""
 
-import from ...graph.nodes { BearNode }
-import from ...prompts.bear_prompts { analyze_bear_news }
+import from graph.nodes { BearNode }
+import from prompts.bear_prompts { analyze_bear_news }
 
 walker BearNewsAgent {
     has ticker: str;

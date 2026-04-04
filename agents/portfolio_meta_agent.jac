@@ -1,11 +1,11 @@
 """Portfolio Meta Agent — cross-asset reasoning walker."""
 
-import from ..graph.nodes { PortfolioNode, Asset, BullNode, BearNode, VerdictNode, PortfolioAnnotation }
-import from ..graph.edges { BelongsToPortfolio, HasCoalition, HasVerdict, HasAnnotation }
-import from ..prompts.portfolio_prompts { PortfolioInsight, synthesize_portfolio_annotation }
+import from graph.nodes { PortfolioNode, Asset, BullNode, BearNode, VerdictNode, PortfolioAnnotation }
+import from graph.edges { BelongsToPortfolio, HasCoalition, HasVerdict, HasAnnotation }
+import from prompts.portfolio_prompts { PortfolioInsight, synthesize_portfolio_annotation }
 
-def build_asset_summaries_text(summaries: list) -> str {
-    lines: list = [];
+def build_asset_summaries_text(summaries: list[dict]) -> str {
+    lines: list[str] = [];
     for s in summaries {
         line = f"{s['ticker']} | sector={s['sector']} | bull={s['bull_argument']} (conf {s['bull_confidence']}%) | bear={s['bear_argument']} (conf {s['bear_confidence']}%) | verdict={s['verdict']} (conf {s['judge_confidence']}%)";
         lines.append(line);
@@ -14,7 +14,7 @@ def build_asset_summaries_text(summaries: list) -> str {
 }
 
 walker PortfolioMetaWalker {
-    has asset_summaries: list = [];
+    has asset_summaries: list[dict] = [];
 
     can enter_portfolio with PortfolioNode entry {
         visit [->:BelongsToPortfolio:->][?:Asset];

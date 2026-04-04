@@ -1,7 +1,7 @@
 """Bull Macro Agent — identifies favorable macroeconomic tailwinds."""
 
-import from ...graph.nodes { BullNode }
-import from ...prompts.bull_prompts { analyze_bull_macro }
+import from graph.nodes { BullNode }
+import from prompts.bull_prompts { analyze_bull_macro }
 
 walker BullMacroAgent {
     has ticker: str;

@@ -1,12 +1,12 @@
 """Entry point for AlphaWalker."""
 
-import from .graph.nodes { PortfolioNode, Asset, VerdictNode }
-import from .graph.edges { BelongsToPortfolio, HasVerdict }
-import from .agents.bull_coalition_walker { BullCoalitionWalker }
-import from .agents.bear_coalition_walker { BearCoalitionWalker }
-import from .agents.judge_agent { JudgeWalker }
+import from graph.nodes { PortfolioNode, Asset, VerdictNode }
+import from graph.edges { BelongsToPortfolio, HasVerdict }
+import from agents.bull_coalition_walker { BullCoalitionWalker }
+import from agents.bear_coalition_walker { BearCoalitionWalker }
+import from agents.judge_agent { JudgeWalker }
 
-with entry {
+with entry:__main__ {
     portfolio = PortfolioNode(name="AlphaWalker Portfolio");
     root() ++> portfolio;
 
