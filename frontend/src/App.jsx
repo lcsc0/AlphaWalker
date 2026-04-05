@@ -202,6 +202,8 @@ function AnalysisTickerSection({ data: d }) {
           )}
         </div>
       )}
+
+      <MomentumChart ticker={d.ticker} />
     </div>
   )
 }
@@ -259,31 +261,56 @@ function VerdictCard({ data: d }) {
   )
 }
 
-// ─── MomentumSparkline ────────────────────────────────────────
+// ─── MomentumChart ────────────────────────────────────────────
+// Full-width confidence trend chart for the Analysis tab.
+// Shows bull, bear, and judge confidence across the last N runs.
 
-function MomentumSparkline({ ticker }) {
+function MomentumChart({ ticker }) {
   const [history, setHistory] = useState([])
 
   useEffect(() => {
     if (!ticker) return
     insforge.database
       .from('ticker_verdicts')
-      .select('judge_confidence, created_at')
+      .select('judge_confidence, bull_confidence, bear_confidence, created_at')
       .eq('ticker', ticker)
       .order('created_at', { ascending: false })
-      .limit(4)
+      .limit(8)
       .then(({ data }) => {
-        const pts = (data || []).reverse().map((d, i) => ({ run: i + 1, conf: d.judge_confidence || 0 }))
+        const pts = (data || []).reverse().map(row => ({
+          date: new Date(row.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          Bull: row.bull_confidence || 0,
+          Bear: row.bear_confidence || 0,
+          Judge: row.judge_confidence || 0,
+        }))
         setHistory(pts)
       })
   }, [ticker])
 
   if (history.length < 2) return null
+
   return (
-    <div style={{ width: 120, height: 40 }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={history}>
-          <Line type="monotone" dataKey="conf" stroke={T.accent} strokeWidth={2} dot={false} />
+    <div style={{ marginTop: 20, padding: 20, backgroundColor: T.bg, borderRadius: 10, border: `1px solid ${T.border}` }}>
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>Confidence Trend</div>
+        <div style={{ fontSize: 12, color: T.textDim, marginTop: 2 }}>
+          Bull, bear, and judge confidence across the last {history.length} analysis runs (0–100 scale)
+        </div>
+      </div>
+      <ResponsiveContainer width="100%" height={180}>
+        <LineChart data={history} margin={{ top: 4, right: 16, bottom: 0, left: -8 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={T.border} />
+          <XAxis dataKey="date" tick={{ fill: T.textDim, fontSize: 11 }} stroke={T.border} />
+          <YAxis domain={[0, 100]} tick={{ fill: T.textDim, fontSize: 11 }} stroke={T.border} tickCount={6} />
+          <Tooltip
+            contentStyle={{ backgroundColor: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12, color: T.text }}
+            labelStyle={{ color: T.textMuted, fontWeight: 600, marginBottom: 6 }}
+            formatter={(value, name) => [`${value}`, name]}
+          />
+          <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+          <Line type="monotone" dataKey="Bull" stroke="#4ade80" strokeWidth={2} dot={{ r: 4, fill: '#4ade80', strokeWidth: 0 }} activeDot={{ r: 6 }} />
+          <Line type="monotone" dataKey="Bear" stroke="#f87171" strokeWidth={2} dot={{ r: 4, fill: '#f87171', strokeWidth: 0 }} activeDot={{ r: 6 }} />
+          <Line type="monotone" dataKey="Judge" stroke={T.accent} strokeWidth={2} dot={{ r: 4, fill: T.accent, strokeWidth: 0 }} activeDot={{ r: 6 }} />
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -715,10 +742,7 @@ export default function App() {
                     </ResponsiveContainer>
                   </div>
                   {results.map(d => (
-                    <div key={d.ticker} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                      <div style={{ flex: 1 }}><VerdictCard data={d} /></div>
-                      <MomentumSparkline ticker={d.ticker} />
-                    </div>
+                    <VerdictCard key={d.ticker} data={d} />
                   ))}
                   <PortfolioQA results={results} />
                 </>
