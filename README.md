@@ -65,12 +65,13 @@ jac run main.jac
 
 ## Web Dashboard
 
-The React frontend (`frontend/`) provides a three-tab dashboard:
+The React frontend (`frontend/`) provides a four-tab dashboard:
 
 | Tab | Description |
 |---|---|
 | **Dashboard** | Compact verdict cards for all analyzed tickers — color-coded green/yellow/red |
 | **Analysis** | Full breakdown: bull/bear confidence bar chart, judge radial gauge, expandable argument panels |
+| **Rebalance** | Portfolio gap analysis with ranked security recommendations and yfinance signals |
 | **History** | Past analysis runs pulled from the Insforge database |
 
 Enter a comma-separated list of tickers in the input bar (e.g. `NVDA, AAPL, TSLA`) and click **Analyze**. Results stream back from `POST /v1/analyze-tickers` and are persisted to an [Insforge](https://insforge.app) cloud database when `INSFORGE_URL` and `INSFORGE_SERVICE_KEY` are configured (see [DEPLOYMENT.md](DEPLOYMENT.md) for setup). The History tab reads from this database.
