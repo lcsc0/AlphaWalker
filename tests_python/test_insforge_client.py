@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import json
 import unittest
 from unittest.mock import MagicMock, patch
 
-from api.insforge_client import InsforgeClient
+from api.insforge_client import InsforgeClient, create_insforge_client
 
 
 class InsforgeClientTests(unittest.TestCase):
@@ -102,6 +101,23 @@ class InsforgeClientTests(unittest.TestCase):
         self.client.insert_ticker_verdicts([
             {"run_id": "abc-123", "ticker": "NVDA", "verdict": "buy"}
         ])
+
+
+class CreateInsforgeClientTests(unittest.TestCase):
+
+    def test_returns_client_when_credentials_provided(self) -> None:
+        client = create_insforge_client("https://test.insforge.app", "sk_key")
+        self.assertIsNotNone(client)
+        self.assertIsInstance(client, InsforgeClient)
+        client.close()
+
+    def test_returns_none_when_url_missing(self) -> None:
+        self.assertIsNone(create_insforge_client(None, "sk_key"))
+        self.assertIsNone(create_insforge_client("", "sk_key"))
+
+    def test_returns_none_when_key_missing(self) -> None:
+        self.assertIsNone(create_insforge_client("https://test.insforge.app", None))
+        self.assertIsNone(create_insforge_client("https://test.insforge.app", ""))
 
 
 if __name__ == "__main__":

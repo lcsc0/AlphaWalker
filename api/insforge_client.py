@@ -41,16 +41,16 @@ class InsforgeClient:
             logger.warning("Failed to insert analysis_run: %s", exc)
             return None
 
-    def update_analysis_run(self, id: str, updates: dict) -> None:
+    def update_analysis_run(self, run_id: str, updates: dict) -> None:
         """Update an analysis_runs row by id. Logs and swallows errors."""
         try:
             resp = self._http.patch(
-                f"/analysis_runs?id=eq.{id}",
+                f"/analysis_runs?id=eq.{run_id}",
                 json=updates,
             )
             resp.raise_for_status()
         except Exception as exc:
-            logger.warning("Failed to update analysis_run %s: %s", id, exc)
+            logger.warning("Failed to update analysis_run %s: %s", run_id, exc)
 
     def insert_ticker_verdicts(self, verdicts: list[dict]) -> None:
         """Insert rows into ticker_verdicts. Logs and swallows errors."""
