@@ -69,6 +69,7 @@ class AnalysisService {
     has executor: ThreadPoolExecutor;
     has _run_locks: dict[str, threading.Lock];
     has _insforge_ids: dict[str, str];
+    has _insforge_ids_lock: threading.Lock;
 
     def __init__(self: AnalysisService, storage: RunStorage, engine: Any | None = None, insforge: Any | None = None) {
         self.storage = storage;
@@ -81,6 +82,7 @@ class AnalysisService {
         self.executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="alphawalker");
         self._run_locks = {};
         self._insforge_ids = {};
+        self._insforge_ids_lock = threading.Lock();
     }
 
     def shutdown(self: AnalysisService) {
@@ -143,7 +145,9 @@ class AnalysisService {
                 {"tickers": tickers, "status": "queued", "results": {}}
             );
             if insforge_row is not None and "id" in insforge_row {
-                self._insforge_ids[run_id] = insforge_row["id"];
+                with self._insforge_ids_lock {
+                    self._insforge_ids[run_id] = insforge_row["id"];
+                }
             }
         }
 
@@ -191,11 +195,13 @@ class AnalysisService {
                 progress=0.05,
                 started_at=utc_now_iso()
             );
-            if self.insforge is not None and run_id in self._insforge_ids {
-                self.insforge.update_analysis_run(
-                    self._insforge_ids[run_id],
-                    {"status": "running"}
-                );
+            if self.insforge is not None {
+                with self._insforge_ids_lock {
+                    _ig_id = self._insforge_ids.get(run_id);
+                }
+                if _ig_id is not None {
+                    self.insforge.update_analysis_run(_ig_id, {"status": "running"});
+                }
             }
             try {
                 def _emit(evt: EngineEvent) {
@@ -210,29 +216,35 @@ class AnalysisService {
                     finished_at=utc_now_iso(),
                     result=result_dict
                 );
-                if self.insforge is not None and run_id in self._insforge_ids {
-                    insforge_id = self._insforge_ids[run_id];
-                    self.insforge.update_analysis_run(
-                        insforge_id,
-                        {"status": "completed", "results": result_dict}
-                    );
-                    verdicts = [];
-                    for h in result_dict.get("holdings", []) {
-                        verdicts.append({
-                            "run_id": insforge_id,
-                            "ticker": h.get("ticker", ""),
-                            "verdict": h.get("sentiment", ""),
-                            "judge_confidence": h.get("risk_score", 0),
-                            "rationale": h.get("summary", ""),
-                            "bull_confidence": 0,
-                            "bear_confidence": 0,
-                            "bull_argument": "",
-                            "bear_argument": "",
-                            "condition": ""
-                        });
+                if self.insforge is not None {
+                    with self._insforge_ids_lock {
+                        insforge_id = self._insforge_ids.pop(run_id, None);
                     }
-                    self.insforge.insert_ticker_verdicts(verdicts);
-                    del self._insforge_ids[run_id];
+                    if insforge_id is not None {
+                        self.insforge.update_analysis_run(
+                            insforge_id,
+                            {"status": "completed", "results": result_dict}
+                        );
+                        # The rule-based engine returns holdings with sentiment/risk_score/summary.
+                        # Bull/bear fields are only available from the Jac pipeline (/v1/analyze-tickers),
+                        # so defaults are used here. Task 4 handles the richer mapping.
+                        verdicts = [];
+                        for h in result_dict.get("holdings", []) {
+                            verdicts.append({
+                                "run_id": insforge_id,
+                                "ticker": h.get("ticker", ""),
+                                "verdict": h.get("sentiment", ""),
+                                "judge_confidence": h.get("risk_score", 0),
+                                "rationale": h.get("summary", ""),
+                                "bull_confidence": 0,
+                                "bear_confidence": 0,
+                                "bull_argument": "",
+                                "bear_argument": "",
+                                "condition": ""
+                            });
+                        }
+                        self.insforge.insert_ticker_verdicts(verdicts);
+                    }
                 }
             } except Exception as exc {
                 error = AnalysisError(
@@ -256,13 +268,16 @@ class AnalysisService {
                     finished_at=utc_now_iso(),
                     error=error
                 );
-                if self.insforge is not None and run_id in self._insforge_ids {
-                    insforge_id = self._insforge_ids[run_id];
-                    self.insforge.update_analysis_run(
-                        insforge_id,
-                        {"status": "failed"}
-                    );
-                    del self._insforge_ids[run_id];
+                if self.insforge is not None {
+                    with self._insforge_ids_lock {
+                        insforge_id = self._insforge_ids.pop(run_id, None);
+                    }
+                    if insforge_id is not None {
+                        self.insforge.update_analysis_run(
+                            insforge_id,
+                            {"status": "failed"}
+                        );
+                    }
                 }
             }
         }

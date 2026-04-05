@@ -122,9 +122,7 @@ class InsforgeIntegrationTests(unittest.TestCase):
     # ---- insforge=None tests ----
 
     def test_no_insforge_calls_when_client_is_none(self) -> None:
-        spy = MagicMock()
         service_no_insforge = AnalysisService(self.storage)
-        # Patch a spy to confirm no attribute access happens
         self.assertIsNone(service_no_insforge.insforge)
         try:
             submitted = service_no_insforge.submit_run(self._make_request())
