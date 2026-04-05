@@ -61,7 +61,7 @@ The React frontend (`frontend/`) provides a three-tab dashboard:
 | **Analysis** | Full breakdown: bull/bear confidence bar chart, judge radial gauge, expandable argument panels |
 | **History** | Past analysis runs pulled from the Insforge database |
 
-Enter a comma-separated list of tickers in the input bar (e.g. `NVDA, AAPL, TSLA`) and click **Analyze**. Results stream back from `POST /v1/analyze-tickers` and are saved to the cloud database automatically.
+Enter a comma-separated list of tickers in the input bar (e.g. `NVDA, AAPL, TSLA`) and click **Analyze**. Results stream back from `POST /v1/analyze-tickers` and are persisted to an [Insforge](https://insforge.app) cloud database when `INSFORGE_URL` and `INSFORGE_SERVICE_KEY` are configured (see [DEPLOYMENT.md](DEPLOYMENT.md) for setup). The History tab reads from this database.
 
 ---
 
@@ -97,7 +97,7 @@ The `JudgeAgent` is a neutral synthesis walker. It does not conduct its own rese
 - Whether the risks cited by the bear are already priced in
 - Whether the bull's thesis depends on assumptions that could fail
 
-**Possible verdicts:** `conviction buy` | `buy with conditions` | `hold` | `avoid with conditions` | `conviction avoid` | `split decision`
+**Possible verdicts:** `conviction buy` | `buy with conditions` | `hold` | `avoid with conditions` | `conviction avoid` | `split decision` | `insufficient data`
 
 ---
 
@@ -306,6 +306,25 @@ This makes AlphaWalker feel production-grade rather than a system that always ha
 
 ---
 
+### Quantitative Technical Signals
+
+Before quant agents run, AlphaWalker computes real technical signals from market data via `api/technical_signals.py` using yfinance:
+
+- **RSI (14-day)** with overbought/oversold labels
+- **50-day and 200-day moving averages** with crossover detection (golden cross, death cross, bullish/bearish alignment)
+- **Realized volatility** (30-day annualized)
+- **Price momentum** (1-month, 3-month, 6-month returns)
+
+These signals are injected into the `quant_signals` field on each `Asset` node and passed to both `BullQuantAgent` and `BearQuantAgent` as factual foundation data. This ensures quant agents argue from computed numbers rather than relying on LLM training data for market prices.
+
+---
+
+### 12-Hour Verdict Cache
+
+Repeated analysis of the same ticker within 12 hours returns cached results without re-running the agent pipeline. The cache is in-memory (per-process) and implemented in `api/verdict_cache.py`. This avoids redundant LLM calls during iterative portfolio exploration.
+
+---
+
 ### Natural Language Portfolio Q&A
 
 A `QueryWalker` accepts freeform natural language questions and answers them by traversing the live graph in real time. Rather than querying a static report, it reads the actual bull/bear annotations, temporal history, and judge rulings on demand.
@@ -334,17 +353,34 @@ This is the live demo moment: a judge or investor asks an unscripted question, a
 
 ---
 
-## Persistent Learning
+## API
 
-AlphaWalker's graph is persistent across runs. Each week the system:
+The FastAPI backend exposes the following endpoints (all accept an optional `X-API-Key` header):
 
-1. Records the coalition positions (bull/bear) and the judge's verdict per ticker
-2. Tracks subsequent price performance as ground truth
-3. Scores each coalition on prediction accuracy over a rolling window
+| Endpoint | Method | Description |
+|---|---|---|
+| `/health` | GET | Health check |
+| `/v1/analyze-tickers` | POST | Synchronous ticker analysis (main endpoint) |
+| `/analyze` | POST | Alias for `/v1/analyze-tickers` |
+| `/v1/analysis-runs` | POST | Portfolio-level analysis with holdings and weights |
+| `/v1/analysis-runs/{run_id}` | GET | Poll run status and results |
+| `/v1/analysis-runs/{run_id}/events` | GET | Cursor-based event stream for progress updates |
+| `/v1/query` | POST | Natural language Q&A over analysis results |
+| `/v1/historical-prices/{ticker}` | GET | Historical price data via yfinance |
 
-Over time, the coalition with the better historical track record **per ticker** gets weighted more heavily by the judge. A bull coalition that has been right on NVDA 7 of the last 10 times carries more credibility than one that has been right 4 of 10.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for request/response shapes, curl examples, and environment variable configuration.
 
-This creates a system that doesn't just reason — it learns which side to trust.
+---
+
+## Persistent Learning (Roadmap)
+
+> **Note:** The features described below are planned but not yet implemented.
+
+AlphaWalker's graph is persistent across runs. Each run timestamps its findings as new nodes (see Temporal Graph above). Future planned enhancements include:
+
+- Tracking subsequent price performance as ground truth
+- Scoring each coalition on prediction accuracy over a rolling window
+- Weighting judge verdicts by historical coalition accuracy per ticker
 
 ---
 
@@ -365,7 +401,7 @@ AlphaWalker maps cleanly onto Jac's Object Spatial Programming model:
 | Confidence scoring | Each agent deposits a confidence score alongside its argument; judge weights verdicts accordingly |
 | Epistemic humility | Judge emits `INSUFFICIENT DATA` verdict when both sides return low confidence |
 | Live Q&A | `QueryWalker` traverses relevant nodes in real time to answer freeform natural language questions |
-| Historical learning | Persisted edge weights updated after each weekly run |
+| Historical learning | **Planned** — persistent edge weights updated after each weekly run (not yet implemented) |
 
 The declarative nature of Jac means agent roles and graph topology are defined structurally — orchestration is handled by the runtime, not imperative control flow.
 

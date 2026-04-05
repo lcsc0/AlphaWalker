@@ -25,6 +25,7 @@ One node per ticker. The central hub for each stock — bull and bear coalition 
 | `ticker` | `str` | required | Ticker symbol, e.g. `"NVDA"` |
 | `price` | `float` | `0.0` | Latest price (populated at run time) |
 | `sector` | `str` | `""` | Sector label used by `PortfolioMetaAgent` for concentration analysis |
+| `quant_signals` | `str` | `""` | Precomputed technical signals (RSI-14, MA50/MA200, crossover, volatility, momentum) from `api/technical_signals.py`, injected before quant agents run |
 
 ---
 
