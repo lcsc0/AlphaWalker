@@ -52,7 +52,17 @@
       "Bash(find . -type f -name *.d.ts)",
       "WebSearch",
       "WebFetch(domain:docs.insforge.dev)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(python -m pytest tests_python/test_insforge_client.py -v)",
+      "Bash(python3:*)",
+      "Bash(npm run:*)",
+      "Bash(npx vite:*)",
+      "Bash(npm install:*)",
+      "Bash(npx:*)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "jac-mcp",
+    "jac"
+  ]
 }
