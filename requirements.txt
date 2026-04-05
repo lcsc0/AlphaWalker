@@ -7,5 +7,7 @@ uvicorn[standard]>=0.30,<1.0
 jaclang>=0.13.0
 # Historical price data
 yfinance>=0.2.36
+# Insforge REST API client
+httpx>=0.27,<1.0
 # LLM backend for Jac's 'by llm()' syntax
 byllm>=0.6.3

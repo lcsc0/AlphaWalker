@@ -22,6 +22,7 @@ import from api.jac_bridge { run_jac_pipeline }
 import from api.prices { fetch_historical_prices }
 import from api.service { AnalysisService }
 import from api.storage { RunStorage }
+import from api.insforge_client { create_insforge_client }
 
 class HoldingIn(BaseModel) {
     has ticker: str;
@@ -58,7 +59,11 @@ glob APP_ROOT = Path(__file__).resolve().parent.parent;
 glob DB_PATH = os.getenv("ALPHAWALKER_DB_PATH", str(APP_ROOT / "data" / "analysis_runs.db"));
 glob API_KEY = os.getenv("ALPHAWALKER_API_KEY", "");
 glob storage = RunStorage(DB_PATH);
-glob service = AnalysisService(storage);
+glob insforge_client = create_insforge_client(
+    os.getenv("INSFORGE_URL"),
+    os.getenv("INSFORGE_SERVICE_KEY")
+);
+glob service = AnalysisService(storage, insforge=insforge_client);
 glob startup_recover_count = service.recover_incomplete_runs();
 glob app = FastAPI(title="AlphaWalker API", version="0.1.0");
 
@@ -131,6 +136,34 @@ def _analyze_tickers_response(body: AnalyzeTickersIn) -> dict {
     for r in rows_raw {
         if isinstance(r, dict) {
             data.append(_row_with_confidence(r));
+        }
+    }
+    if insforge_client is not None and len(data) > 0 {
+        insforge_row = insforge_client.insert_analysis_run({
+            "tickers": tickers,
+            "status": "completed",
+            "results": data
+        });
+        if insforge_row is not None and "id" in insforge_row {
+            insforge_run_id = insforge_row["id"];
+            verdicts: list[dict] = [];
+            for d in data {
+                verdicts.append({
+                    "run_id": insforge_run_id,
+                    "ticker": d.get("ticker", ""),
+                    "verdict": d.get("verdict", ""),
+                    "judge_confidence": d.get("judge_confidence", 0),
+                    "bull_confidence": d.get("bull_confidence", 0),
+                    "bear_confidence": d.get("bear_confidence", 0),
+                    "rationale": d.get("rationale", ""),
+                    "condition": d.get("condition", ""),
+                    "bull_argument": d.get("bull_argument", ""),
+                    "bear_argument": d.get("bear_argument", "")
+                });
+            }
+            if len(verdicts) > 0 {
+                insforge_client.insert_ticker_verdicts(verdicts);
+            }
         }
     }
     return {"status": "success", "data": data};

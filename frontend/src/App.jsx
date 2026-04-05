@@ -465,21 +465,7 @@ export default function App() {
       }).then(r => r.json())
 
       if (resp.status === 'success') {
-        const data = resp.data || []
-        setResults(data)
-        const { data: savedRuns } = await insforge.database
-          .from('analysis_runs').insert([{ tickers, results: data, status: 'completed' }]).select()
-        if (savedRuns && savedRuns.length > 0) {
-          const runId = savedRuns[0].id
-          const verdicts = data.map(d => ({
-            run_id: runId, ticker: d.ticker, verdict: d.verdict,
-            judge_confidence: d.judge_confidence,
-            bull_confidence: d.bull_confidence, bear_confidence: d.bear_confidence,
-            rationale: d.rationale, condition: d.condition,
-            bull_argument: d.bull_argument, bear_argument: d.bear_argument
-          }))
-          if (verdicts.length > 0) await insforge.database.from('ticker_verdicts').insert(verdicts)
-        }
+        setResults(resp.data || [])
       } else {
         setError('Analysis failed')
       }
