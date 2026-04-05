@@ -60,7 +60,80 @@ curl -sS -X POST http://localhost:8000/v1/analyze-tickers \
   -d '{"tickers":["NVDA","AAPL"]}'
 ```
 
-`POST /analyze` is an alias for the same handler. Response shape: `{"status":"success","data":[{ "ticker", "verdict", "confidence", "rationale", "condition", "judge_confidence", ... }]}`.
+`POST /analyze` is an alias for the same handler. Response shape:
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "ticker": "NVDA",
+      "verdict": "buy with conditions",
+      "confidence": 67,
+      "rationale": "...",
+      "condition": "...",
+      "judge_confidence": 67,
+      "bull_argument": "...",
+      "bull_confidence": 81,
+      "bear_argument": "...",
+      "bear_confidence": 61
+    }
+  ],
+  "portfolio_meta": { "annotation": "...", "correlated_theme": "...", "hedging_gaps": "...", "portfolio_conviction": "..." }
+}
+```
+
+`portfolio_meta` is `null` if the portfolio meta agent fails or is unavailable.
+
+## Additional API endpoints
+
+6. **Portfolio-level analysis** (async with polling):
+
+```bash
+# Submit a run
+curl -sS -X POST http://localhost:8000/v1/analysis-runs \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: dev-secret" \
+  -d '{
+    "portfolio": {
+      "holdings": [{"ticker": "NVDA", "weight": 0.4}, {"ticker": "AAPL", "weight": 0.6}],
+      "as_of_date": "2026-04-05"
+    }
+  }'
+# Returns: {"run_id": "...", "status": "queued", "created_at": "..."}
+
+# Poll for results
+curl -sS http://localhost:8000/v1/analysis-runs/{run_id} \
+  -H "X-API-Key: dev-secret"
+# Returns: {"run_id", "status", "progress", "portfolio_summary", "result", "error", "started_at", "finished_at"}
+
+# Poll event stream (cursor-based)
+curl -sS "http://localhost:8000/v1/analysis-runs/{run_id}/events?cursor=0" \
+  -H "X-API-Key: dev-secret"
+# Returns: {"run_id", "events": [...], "next_cursor": 5}
+```
+
+7. **Natural language Q&A** over analysis results:
+
+```bash
+curl -sS -X POST http://localhost:8000/v1/query \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: dev-secret" \
+  -d '{"question": "Why should I avoid TSLA?", "results": [...]}'
+# Returns: {"status": "success", "data": "..."}
+```
+
+Pass the `results` array from a prior `/v1/analyze-tickers` response. The query walker traverses the analysis data to answer freeform questions.
+
+8. **Historical prices** (yfinance):
+
+```bash
+curl -sS "http://localhost:8000/v1/historical-prices/NVDA?period=1y" \
+  -H "X-API-Key: dev-secret"
+# Returns: {"ticker": "NVDA", "prices": [...]}
+```
+
+Valid `period` values: `1mo`, `3mo`, `6mo`, `1y`, `2y`, `5y` (default: `1y`).
 
 ## Environment variables
 
@@ -69,8 +142,11 @@ curl -sS -X POST http://localhost:8000/v1/analyze-tickers \
 - `ALPHAWALKER_USE_JAC`: `1` (default) runs the real Jac graph via `alphawalker_pipeline.jac` in a subprocess; set `0` to use the lightweight rule-based engine only (good for CI or demos without LLM keys)
 - `ALPHAWALKER_JAC_FALLBACK`: `1` (default) falls back to the rule engine if the Jac subprocess errors (missing `jaclang`, LLM auth, timeout)
 - `ALPHAWALKER_JAC_TIMEOUT`: seconds for the Jac worker (default `900`)
-- `OPENAI_API_KEY`: required for **OpenAI** (or other providers your Jac `by llm()` stack expects) when Jac is enabled
-- `OPENAI_BASE_URL` / `OPENAI_API_BASE`: optional; set to Ollama’s OpenAI-compatible endpoint when using local Ollama (see below)
+- `OPENAI_API_KEY`: required for LLM calls when Jac is enabled. Works with OpenAI, OpenRouter, or any OpenAI-compatible provider. The `.env.example` defaults to OpenRouter (`https://openrouter.ai/api/v1`)
+- `OPENAI_BASE_URL` / `OPENAI_API_BASE`: optional; set to the provider’s OpenAI-compatible endpoint (OpenRouter, Ollama, etc.)
+- `OPENAI_MODEL`: optional model identifier (e.g., `openai/gpt-5.4-mini`); useful when routing through OpenRouter or specifying a non-default model
+- `INSFORGE_URL`: optional; base URL for the Insforge cloud database (e.g., `https://your-project.us-east.insforge.app`). When set along with `INSFORGE_SERVICE_KEY`, analysis runs and ticker verdicts are persisted to the cloud for the History tab
+- `INSFORGE_SERVICE_KEY`: optional; service-level API key for Insforge write operations. If either Insforge var is missing, the backend operates in local-only mode
 
 ### Ollama instead of OpenAI
 

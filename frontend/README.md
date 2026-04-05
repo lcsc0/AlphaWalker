@@ -1,16 +1,32 @@
-# React + Vite
+# AlphaWalker Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React dashboard for the AlphaWalker multi-agent investment research system.
 
-Currently, two official plugins are available:
+## Setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm install
+npm run dev       # starts at http://localhost:5173 (or --port 3000)
+npm run build     # production build to dist/
+```
 
-## React Compiler
+Expects the AlphaWalker API running at `http://localhost:8000`.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tabs
 
-## Expanding the ESLint configuration
+| Tab | Description |
+|---|---|
+| **Dashboard** | Compact verdict cards for all analyzed tickers, color-coded by verdict (green/yellow/red). Expandable to show rationale. |
+| **Analysis** | Full breakdown per ticker: bull/bear confidence bar chart, judge confidence radial gauge, expandable argument panels, and historical confidence trend chart. |
+| **History** | Past analysis runs pulled from the Insforge cloud database, with drill-down into per-ticker verdicts. |
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Tech Stack
+
+- React 19 + Vite 8
+- Recharts for data visualization (bar charts, line charts, radial gauges)
+- `@insforge/sdk` for cloud database reads (History tab, confidence trends)
+- Single-file architecture (`src/App.jsx`)
+
+## Environment
+
+The API base URL is hardcoded to `http://localhost:8000` in `App.jsx`. For production deployments, update this or introduce an environment variable.
