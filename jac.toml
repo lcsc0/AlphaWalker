@@ -30,8 +30,7 @@ watchdog = ">=3.0.0"
 [plugins.byllm]
 
 [plugins.byllm.model]
-default_model = "openrouter/openai/gpt-4o-mini"
-api_key = "YOUR_OPENROUTER_KEY_HERE"
+default_model = "openai/gpt-5.4-mini"
 
 [plugins.byllm.call_params]
 temperature = 0.3

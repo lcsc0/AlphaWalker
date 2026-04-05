@@ -20,6 +20,18 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
+# ── Load environment variables from .env ──────────────────────
+
+if [ -f "$SCRIPT_DIR/.env" ]; then
+    set -a
+    # shellcheck disable=SC1091
+    source "$SCRIPT_DIR/.env"
+    set +a
+    echo -e "${GREEN}Loaded .env${NC}"
+else
+    echo -e "${YELLOW}Warning: no .env file found — LLM API key may be missing${NC}"
+fi
+
 # ── Kill existing processes ────────────────────────────────────
 
 echo -e "${YELLOW}Stopping existing processes...${NC}"
