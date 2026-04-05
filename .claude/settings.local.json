@@ -65,7 +65,11 @@
       "Bash(grep -rn \"by llm\\\\|llm_func\\\\|llm_call\\\\|__llm__\\\\|openai_client\\\\|openai.ChatCompletion\\\\|base_url\" /opt/homebrew/Caskroom/miniconda/base/lib/python3.12/site-packages/jaclang/ --include=*.py)",
       "Bash(/opt/homebrew/Caskroom/miniconda/base/bin/pip list:*)",
       "Bash(/opt/homebrew/Caskroom/miniconda/base/bin/pip install:*)",
-      "Bash(/opt/homebrew/Caskroom/miniconda/base/bin/python -c \"import byllm; print\\(dir\\(byllm\\)\\)\")"
+      "Bash(/opt/homebrew/Caskroom/miniconda/base/bin/python -c \"import byllm; print\\(dir\\(byllm\\)\\)\")",
+      "Bash(time /opt/homebrew/Caskroom/miniconda/base/bin/python api/_jac_worker_main.py '[\"\"\"\"NVDA\"\"\"\"]')",
+      "Bash(find /Users/Lucas/AlphaWalker -name \"*.jir\" -not -path \"*/site-packages/*\" -delete)",
+      "Bash(find /Users/Lucas/AlphaWalker -maxdepth 3 -name \"*.jir\" -not -path \"*/site-packages/*\" -delete)",
+      "Bash(time /opt/homebrew/Caskroom/miniconda/base/bin/python api/_jac_worker_main.py [\"\"NVDA\"\"])"
     ]
   }
 }

@@ -30,7 +30,7 @@ watchdog = ">=3.0.0"
 [plugins.byllm]
 
 [plugins.byllm.model]
-default_model = "ollama_chat/llama3.1:8b"
+default_model = "ollama_chat/llama3.2"
 api_key = "ollama"
 
 [plugins.byllm.call_params]
