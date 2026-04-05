@@ -23,11 +23,11 @@ import from api.storage { RunStorage }
 
 glob logger = logging.getLogger("api.service");
 
+# Canonical string key for a normalized holding list, used for Insforge cache lookups.
 def _make_portfolio_key(holdings: list[Holding]) -> str {
-    """Canonical string key for a normalized holding list, used for cache lookups."""
     parts: list[str] = [];
     for h in holdings {
-        parts.append(h.ticker + ":" + ("%.6f" % h.weight));
+        parts.append(f"{h.ticker}:{h.weight:.6f}");
     }
     return ",".join(sorted(parts));
 }
