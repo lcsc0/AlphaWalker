@@ -159,21 +159,25 @@ AlphaWalker uses [Insforge](https://insforge.app) as its cloud database backend 
 - Each ticker verdict is inserted into the `ticker_verdicts` table with the full bull argument, bear argument, judge ruling, confidence scores, and temporal snapshot data
 
 **How it connects:**
-The `InsforgeClient` in `api/insforge_client.py` communicates with the Insforge REST API using two environment variables:
+The `InsforgeClient` in `api/insforge_client.py` communicates with the Insforge REST API using two environment variables set in `.env`:
 
 ```bash
-export INSFORGE_URL=https://your-project.insforge.app
-export INSFORGE_SERVICE_KEY=your-service-key
+INSFORGE_URL=https://your-project.us-east.insforge.app
+INSFORGE_SERVICE_KEY=your-anon-key
 ```
+
+`INSFORGE_URL` is the base URL of your Insforge project. `INSFORGE_SERVICE_KEY` is the **anon key** shown in your Insforge project settings — the same key used in the frontend SDK client. No separate service key is needed; the anon key has write access to the required tables.
+
+The `.env` file is loaded automatically by `start.sh` before the backend starts.
 
 **Graceful fallback:**
 If `INSFORGE_URL` or `INSFORGE_SERVICE_KEY` are not set, AlphaWalker runs in local-only mode. Analysis results are still persisted to the local SQLite database (`data/analysis_runs.db`) and all features work normally. Insforge is required only for the **History tab** in the React frontend, which pulls past runs from the cloud database.
 
 **History tab:**
-The History tab in the React dashboard calls the Insforge `ticker_verdicts` table directly to display a searchable log of past analyses across sessions. Without Insforge configured, the History tab will be empty.
+The History tab in the React dashboard reads from the Insforge `analysis_runs` table to show a log of past runs across sessions. Clicking a run restores its full results. Without Insforge configured, the History tab will be empty.
 
 **Setting up Insforge:**
-See [DEPLOYMENT.md](DEPLOYMENT.md) for the full Insforge setup walkthrough, including table schema and service key configuration.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the full Insforge setup walkthrough, including table schema.
 
 ---
 
