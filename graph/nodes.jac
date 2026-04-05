@@ -59,3 +59,9 @@ node PortfolioAnnotation {
         timestamp: str = "",
         run_number: int = 0;
 }
+
+node RebalanceNode {
+    has timestamp: str = "",
+        gap_summary: str = "",
+        picks: list[dict] = [];
+}

@@ -11,3 +11,5 @@ edge HasSnapshot {}
 edge HasVerdict {}
 
 edge HasAnnotation {}
+
+edge HasRebalance {}

@@ -22,6 +22,7 @@ import from api.jac_bridge { run_jac_pipeline }
 import from api.meta_bridge { run_meta }
 import from api.prices { fetch_historical_prices }
 import from api.query_bridge { run_query }
+import from api.rebalance_bridge { run_rebalance }
 import from api.service { AnalysisService }
 import from api.storage { RunStorage }
 import from api.insforge_client { create_insforge_client }
@@ -61,6 +62,19 @@ class AnalyzeTickersIn(BaseModel) {
 class QueryIn(BaseModel) {
     has question: str;
     has results: list[dict];
+}
+
+class PortfolioAnnotationIn(BaseModel) {
+    has annotation: str = "";
+    has correlated_theme: str = "";
+    has hedging_gaps: str = "";
+    has portfolio_conviction: str = "";
+}
+
+class RebalanceIn(BaseModel) {
+    has tickers: list[str];
+    has portfolio_annotation: PortfolioAnnotationIn;
+    has results: list[dict] = [];
 }
 
 glob APP_ROOT = Path(__file__).resolve().parent.parent;
@@ -314,6 +328,28 @@ def query_portfolio(body: QueryIn) -> dict {
         raise HTTPException(status_code=502, detail=str(exc));
     }
     return {"status": "success", "data": answer};
+}
+
+@app.post("/v1/rebalance", dependencies=[Depends(require_api_key)])
+def rebalance_portfolio(body: RebalanceIn) -> dict {
+    tickers = _normalize_ticker_list(body.tickers);
+    if len(tickers) == 0 {
+        raise HTTPException(status_code=400, detail="Provide at least one non-empty ticker.");
+    }
+    annotation = {
+        "correlated_theme": body.portfolio_annotation.correlated_theme,
+        "hedging_gaps": body.portfolio_annotation.hedging_gaps,
+        "portfolio_conviction": body.portfolio_annotation.portfolio_conviction
+    };
+    try {
+        result = run_rebalance(tickers, annotation, body.results);
+    } except Exception as exc {
+        raise HTTPException(status_code=502, detail=str(exc));
+    }
+    if result is None {
+        raise HTTPException(status_code=502, detail="Rebalance agent failed to produce a result.");
+    }
+    return {"status": "success", "data": result};
 }
 
 @app.get("/v1/historical-prices/{ticker}", dependencies=[Depends(require_api_key)])

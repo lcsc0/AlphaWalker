@@ -556,6 +556,88 @@ function PortfolioQA({ results }) {
   )
 }
 
+// ─── RebalancePick ────────────────────────────────────────────
+
+function RebalancePick({ pick, onAnalyze }) {
+  const isETF = (pick.asset_type || '').toUpperCase() === 'ETF'
+  const fitColor = pick.fit_score >= 75 ? '#22c55e' : pick.fit_score >= 50 ? '#eab308' : '#94a3b8'
+  const sig = pick.signals || {}
+
+  return (
+    <div style={{
+      backgroundColor: T.surface, borderRadius: 12, padding: 20,
+      marginBottom: 16, border: `1px solid ${T.border}`
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 22, fontWeight: 800, color: T.text }}>{pick.ticker}</span>
+          <span style={{
+            padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+            backgroundColor: isETF ? 'rgba(99,102,241,0.15)' : 'rgba(74,222,128,0.12)',
+            color: isETF ? T.accent : '#4ade80',
+            border: `1px solid ${isETF ? 'rgba(99,102,241,0.3)' : 'rgba(74,222,128,0.3)'}`
+          }}>{pick.asset_type || 'STOCK'}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 12, color: T.textDim }}>Fit</span>
+          <span style={{ fontSize: 22, fontWeight: 800, color: fitColor }}>{pick.fit_score}</span>
+        </div>
+      </div>
+
+      {pick.gap_addressed && (
+        <div style={{ marginBottom: 10 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: T.textDim, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Gap Addressed — </span>
+          <span style={{ fontSize: 12, color: T.textMuted }}>{pick.gap_addressed}</span>
+        </div>
+      )}
+
+      {pick.rationale && (
+        <p style={{ margin: '0 0 14px', fontSize: 13, color: T.textMuted, lineHeight: 1.65 }}>{pick.rationale}</p>
+      )}
+
+      {Object.keys(sig).length > 0 && (
+        <div style={{
+          display: 'flex', gap: 16, flexWrap: 'wrap',
+          padding: '10px 14px', backgroundColor: T.bg, borderRadius: 8,
+          border: `1px solid ${T.border}`, marginBottom: 14
+        }}>
+          {sig.price !== undefined && (
+            <span style={{ fontSize: 12, color: T.textMuted }}><span style={{ color: T.textDim }}>Price</span> ${sig.price}</span>
+          )}
+          {sig.rsi_14 !== undefined && (
+            <span style={{ fontSize: 12, color: sig.rsi_14 > 70 ? '#f87171' : sig.rsi_14 < 30 ? '#4ade80' : T.textMuted }}>
+              <span style={{ color: T.textDim }}>RSI</span> {sig.rsi_14}
+            </span>
+          )}
+          {sig.ma_cross && (
+            <span style={{ fontSize: 12, color: T.textMuted }}><span style={{ color: T.textDim }}>MA</span> {sig.ma_cross.includes('bullish') ? '↑' : sig.ma_cross.includes('bearish') ? '↓' : '—'}</span>
+          )}
+          {sig.realized_vol_30d !== undefined && (
+            <span style={{ fontSize: 12, color: T.textMuted }}><span style={{ color: T.textDim }}>Vol</span> {sig.realized_vol_30d}%</span>
+          )}
+          {sig.mom_1m !== undefined && (
+            <span style={{ fontSize: 12, color: sig.mom_1m >= 0 ? '#4ade80' : '#f87171' }}>
+              <span style={{ color: T.textDim }}>1m</span> {sig.mom_1m > 0 ? '+' : ''}{sig.mom_1m}%
+            </span>
+          )}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <button
+          onClick={onAnalyze}
+          style={{
+            padding: '8px 20px', backgroundColor: 'transparent', color: T.accent,
+            border: `1px solid rgba(99,102,241,0.4)`, borderRadius: 8,
+            cursor: 'pointer', fontWeight: 600, fontSize: 13
+          }}>
+          Analyze →
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main App ─────────────────────────────────────────────────
 
 export default function App() {
@@ -568,6 +650,9 @@ export default function App() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [portfolios, setPortfolios] = useState([])
   const [selectedPid, setSelectedPid] = useState('')
+  const [rebalanceData, setRebalanceData] = useState(null)
+  const [rebalanceLoading, setRebalanceLoading] = useState(false)
+  const [rebalanceError, setRebalanceError] = useState('')
   const abortCtrl = useRef(null)
 
   const loadPortfolios = () => {
@@ -646,10 +731,39 @@ export default function App() {
     setTab('dashboard')
   }
 
+  const getRebalanceSuggestions = async () => {
+    if (!portfolioMeta || results.length === 0) return
+    setRebalanceLoading(true)
+    setRebalanceError('')
+    setRebalanceData(null)
+    try {
+      const tickers = results.map(r => r.ticker)
+      const r = await fetch(`${API_BASE}/v1/rebalance`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tickers,
+          portfolio_annotation: portfolioMeta,
+          results
+        })
+      })
+      const resp = await r.json()
+      if (r.ok && resp.status === 'success') {
+        setRebalanceData(resp.data)
+      } else {
+        setRebalanceError(resp.detail || 'Rebalance analysis failed')
+      }
+    } catch (e) {
+      setRebalanceError('Failed to reach API: ' + e.message)
+    }
+    setRebalanceLoading(false)
+  }
+
   const tabs = [
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'analysis', label: 'Analysis' },
     { id: 'history', label: 'History' },
+    { id: 'rebalance', label: 'Rebalance' },
   ]
 
   const tabBtn = (id) => ({
@@ -778,6 +892,98 @@ export default function App() {
 
         {/* ── History tab ── */}
         {tab === 'history' && <RunHistory onSelectRun={restoreRun} />}
+
+        {/* ── Rebalance tab ── */}
+        {tab === 'rebalance' && (
+          <div>
+            {!portfolioMeta ? (
+              <div style={{ textAlign: 'center', padding: 80, color: T.textDim }}>
+                <div style={{ fontSize: 18 }}>Run a portfolio analysis first to get rebalance suggestions</div>
+                <div style={{ fontSize: 13, marginTop: 8 }}>Enter tickers on the Dashboard tab, then come back here</div>
+              </div>
+            ) : (
+              <div>
+                {/* Gap Summary from portfolio meta */}
+                <div style={{ backgroundColor: T.surface, borderRadius: 12, padding: 20, marginBottom: 20, border: `1px solid ${T.border}` }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 8 }}>Portfolio Gap Summary</div>
+                  {rebalanceData?.gap_summary ? (
+                    <p style={{ margin: 0, fontSize: 13, color: T.textMuted, lineHeight: 1.6 }}>{rebalanceData.gap_summary}</p>
+                  ) : (
+                    <div>
+                      {portfolioMeta.hedging_gaps && portfolioMeta.hedging_gaps.toLowerCase() !== 'none' && (
+                        <p style={{ margin: '0 0 6px', fontSize: 13, color: T.textMuted, lineHeight: 1.6 }}>
+                          <span style={{ fontWeight: 600, color: T.textDim }}>Hedging Gaps: </span>{portfolioMeta.hedging_gaps}
+                        </p>
+                      )}
+                      {portfolioMeta.correlated_theme && (
+                        <p style={{ margin: 0, fontSize: 13, color: T.textMuted, lineHeight: 1.6 }}>
+                          <span style={{ fontWeight: 600, color: T.textDim }}>Correlated Theme: </span>{portfolioMeta.correlated_theme}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Trigger button */}
+                {!rebalanceData && !rebalanceLoading && (
+                  <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                    <button
+                      onClick={getRebalanceSuggestions}
+                      style={{
+                        padding: '12px 32px', backgroundColor: T.accent, color: 'white',
+                        border: 'none', borderRadius: 10, cursor: 'pointer',
+                        fontWeight: 700, fontSize: 15
+                      }}>
+                      Get Rebalance Suggestions
+                    </button>
+                  </div>
+                )}
+
+                {/* Loading state */}
+                {rebalanceLoading && (
+                  <div style={{ textAlign: 'center', padding: 60 }}>
+                    <div style={{ fontSize: 16, color: T.textMuted }}>Analyzing portfolio gaps and searching for candidates...</div>
+                    <div style={{ fontSize: 13, color: T.textDim, marginTop: 8 }}>This may take 15–30 seconds</div>
+                  </div>
+                )}
+
+                {/* Error state */}
+                {rebalanceError && (
+                  <div style={{ padding: 16, backgroundColor: 'rgba(239,68,68,0.12)', borderRadius: 8, color: '#f87171', marginBottom: 16, border: '1px solid rgba(239,68,68,0.3)' }}>
+                    {rebalanceError}
+                  </div>
+                )}
+
+                {/* Recommendations */}
+                {rebalanceData?.picks?.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 16 }}>Recommended Additions</div>
+                    {rebalanceData.picks.map((pick, i) => (
+                      <RebalancePick
+                        key={pick.ticker || i}
+                        pick={pick}
+                        onAnalyze={() => {
+                          setTickerInput(pick.ticker)
+                          setTab('dashboard')
+                        }}
+                      />
+                    ))}
+                    <div style={{ textAlign: 'center', marginTop: 20 }}>
+                      <button
+                        onClick={getRebalanceSuggestions}
+                        style={{
+                          padding: '8px 20px', backgroundColor: 'transparent', color: T.textMuted,
+                          border: `1px solid ${T.border}`, borderRadius: 8, cursor: 'pointer', fontSize: 13
+                        }}>
+                        Refresh Suggestions
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <AddPortfolioDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onSaved={loadPortfolios} />
