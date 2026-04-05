@@ -52,7 +52,24 @@
       "Bash(find . -type f -name *.d.ts)",
       "WebSearch",
       "WebFetch(domain:docs.insforge.dev)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(curl -s -X POST http://localhost:8000/v1/analyze-tickers -H \"Content-Type: application/json\" -d '{\"\"\"\"tickers\"\"\"\":[\"\"\"\"NVDA\"\"\"\"]}')",
+      "Bash(ls /Users/Lucas/AlphaWalker/*.env*)",
+      "Bash(curl -s http://localhost:11434/api/tags)",
+      "Bash(grep -rn \"MTLLM\\\\|mtllm\\\\|MODEL\\\\|model_name\\\\|engine\" /Users/Lucas/AlphaWalker/ --include=*.jac --include=*.py --include=*.toml --include=*.cfg)",
+      "Bash(ls /Users/Lucas/AlphaWalker/*.toml /Users/Lucas/AlphaWalker/*.cfg)",
+      "Bash(curl -s http://localhost:11434/v1/chat/completions -H \"Content-Type: application/json\" -H \"Authorization: Bearer ollama\" -d '{\"\"model\"\":\"\"llama3.1:8b\"\",\"\"messages\"\":[{\"\"role\"\":\"\"user\"\",\"\"content\"\":\"\"Say hello\"\"}],\"\"max_tokens\"\":20}')",
+      "Bash(/opt/homebrew/Caskroom/miniconda/base/bin/python -c \":*)",
+      "Bash(/opt/homebrew/Caskroom/miniconda/base/bin/python api/_jac_worker_main.py '[\"\"NVDA\"\"]')",
+      "Bash(/opt/homebrew/Caskroom/miniconda/base/bin/pip show:*)",
+      "Bash(grep -rn \"by llm\\\\|llm_func\\\\|llm_call\\\\|__llm__\\\\|openai_client\\\\|openai.ChatCompletion\\\\|base_url\" /opt/homebrew/Caskroom/miniconda/base/lib/python3.12/site-packages/jaclang/ --include=*.py)",
+      "Bash(/opt/homebrew/Caskroom/miniconda/base/bin/pip list:*)",
+      "Bash(/opt/homebrew/Caskroom/miniconda/base/bin/pip install:*)",
+      "Bash(/opt/homebrew/Caskroom/miniconda/base/bin/python -c \"import byllm; print\\(dir\\(byllm\\)\\)\")",
+      "Bash(time /opt/homebrew/Caskroom/miniconda/base/bin/python api/_jac_worker_main.py '[\"\"\"\"NVDA\"\"\"\"]')",
+      "Bash(find /Users/Lucas/AlphaWalker -name \"*.jir\" -not -path \"*/site-packages/*\" -delete)",
+      "Bash(find /Users/Lucas/AlphaWalker -maxdepth 3 -name \"*.jir\" -not -path \"*/site-packages/*\" -delete)",
+      "Bash(time /opt/homebrew/Caskroom/miniconda/base/bin/python api/_jac_worker_main.py [\"\"NVDA\"\"])"
     ]
   }
 }

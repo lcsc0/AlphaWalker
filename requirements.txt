@@ -9,3 +9,5 @@ jaclang>=0.13.0
 yfinance>=0.2.36
 # Insforge REST API client
 httpx>=0.27,<1.0
+# LLM backend for Jac's 'by llm()' syntax
+byllm>=0.6.3

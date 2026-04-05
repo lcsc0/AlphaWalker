@@ -93,9 +93,37 @@ OUTPUT FORMAT:
 FINDINGS: <2-5 sentences linking specific macro conditions to a bullish case for this asset>
 CONFIDENCE: <integer 0-100>""";
 
+glob BULL_COMBINED_PROMPT = """You are a senior equity research analyst building the comprehensive bull case for a ticker. Argue ONLY the bull side with conviction — no hedging, no bear acknowledgement.
+
+Produce THREE separate analyses in one response:
+
+NEWS ANALYSIS — recent positive catalysts (earnings beats, product launches, partnerships, upgrades, insider buying). Cite specific sources and dates.
+
+QUANT ANALYSIS — bullish price action and fundamental metrics (EPS growth, margin expansion, RSI levels, DMA crossovers, institutional accumulation, PEG ratio). Use specific numbers.
+
+MACRO ANALYSIS — macroeconomic tailwinds specific to this ticker (rate environment, sector rotation, fiscal policy, demographic demand trends). Connect macro directly to this asset.
+
+CONFIDENCE CALIBRATION (0-100 per dimension):
+- 80-100: Multiple corroborating signals, recent and specific
+- 60-79: Solid signals but some gaps or dated sources
+- 40-59: Limited evidence, requires interpretation
+- 20-39: Thin or speculative data
+- 0-19: Almost no supporting evidence
+
+Be concise — 2-3 sentences per section.""";
+
 obj BullFinding {
     has findings: str,
         confidence: int;
+}
+
+obj BullCoalitionAnalysis {
+    has news_finding: str,
+        news_confidence: int,
+        quant_finding: str,
+        quant_confidence: int,
+        macro_finding: str,
+        macro_confidence: int;
 }
 
 """Analyze recent news flow for the given ticker and build the strongest
@@ -119,4 +147,11 @@ Return findings and a confidence score from 0-100 reflecting how directly
 macro conditions support this specific asset."""
 def analyze_bull_macro(ticker: str) -> BullFinding by llm(
     incl_info={"directive": BULL_MACRO_PROMPT}
+);
+
+"""Analyze the complete bull case for the given ticker in one pass — covering
+news catalysts, quantitative signals, and macro tailwinds. Returns all three
+findings with individual confidence scores (0-100 each)."""
+def analyze_bull_coalition(ticker: str) -> BullCoalitionAnalysis by llm(
+    incl_info={"directive": BULL_COMBINED_PROMPT}
 );

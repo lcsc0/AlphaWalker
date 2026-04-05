@@ -97,9 +97,37 @@ OUTPUT FORMAT:
 FINDINGS: <2-5 sentences linking specific macro conditions to a bearish case for this asset>
 CONFIDENCE: <integer 0-100>""";
 
+glob BEAR_COMBINED_PROMPT = """You are a short-seller's research analyst building the comprehensive bear case for a ticker. Argue ONLY the bear side with conviction — no hedging, no bull acknowledgement.
+
+Produce THREE separate analyses in one response:
+
+NEWS ANALYSIS — recent negative catalysts (regulatory investigations, insider selling, analyst downgrades, product delays, litigation, accounting red flags). Cite specific sources and dates.
+
+QUANT ANALYSIS — bearish price action and fundamental metrics (elevated P/E vs peers, margin compression, RSI overbought/divergence, death cross, rising short interest, institutional distribution). Use specific numbers.
+
+MACRO ANALYSIS — macroeconomic headwinds specific to this ticker (rate sensitivity, sector outflows, geopolitical exposure, regulatory tightening, commodity headwinds). Connect macro directly to this asset.
+
+CONFIDENCE CALIBRATION (0-100 per dimension):
+- 80-100: Multiple independent negative signals, recent and specific
+- 60-79: Solid bearish evidence but some gaps or dated sources
+- 40-59: Limited evidence, requires interpretation
+- 20-39: Thin or speculative data
+- 0-19: Almost no supporting evidence for the bear case
+
+Be concise — 2-3 sentences per section.""";
+
 obj BearFinding {
     has findings: str,
         confidence: int;
+}
+
+obj BearCoalitionAnalysis {
+    has news_finding: str,
+        news_confidence: int,
+        quant_finding: str,
+        quant_confidence: int,
+        macro_finding: str,
+        macro_confidence: int;
 }
 
 """Analyze recent news flow for the given ticker and build the strongest
@@ -123,4 +151,11 @@ Return findings and a confidence score from 0-100 reflecting how directly
 macro conditions threaten this specific asset."""
 def analyze_bear_macro(ticker: str) -> BearFinding by llm(
     incl_info={"directive": BEAR_MACRO_PROMPT}
+);
+
+"""Analyze the complete bear case for the given ticker in one pass — covering
+news catalysts, quantitative signals, and macro headwinds. Returns all three
+findings with individual confidence scores (0-100 each)."""
+def analyze_bear_coalition(ticker: str) -> BearCoalitionAnalysis by llm(
+    incl_info={"directive": BEAR_COMBINED_PROMPT}
 );

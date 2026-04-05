@@ -28,6 +28,7 @@ def run_pipeline_for_tickers(tickers: list[str]) -> str {
 
         asset spawn BullCoalitionWalker(ticker=ticker);
         asset spawn BearCoalitionWalker(ticker=ticker);
+
         asset spawn JudgeWalker();
 
         verdicts = [asset ->:HasVerdict:->][?:VerdictNode];
