@@ -79,8 +79,7 @@
       "Bash(python3 -c \"from api.technical_signals import compute_signals, format_signals_for_prompt; signals = compute_signals\\(''''NVDA''''\\); print\\(''''Raw:'''', signals\\); print\\(\\); print\\(format_signals_for_prompt\\(''''NVDA'''', signals\\)\\)\")",
       "Bash(PYTHON=/opt/homebrew/Caskroom/miniconda/base/bin/python3)",
       "Bash($PYTHON -c \":*)",
-      "Bash(python -m pytest tests_python/test_rebalance.py -v)",
-      "Bash(python -m pytest tests_python/ -v)"
+      "Bash(git checkout:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
