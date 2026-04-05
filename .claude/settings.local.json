@@ -69,7 +69,10 @@
       "Bash(time /opt/homebrew/Caskroom/miniconda/base/bin/python api/_jac_worker_main.py '[\"\"\"\"NVDA\"\"\"\"]')",
       "Bash(find /Users/Lucas/AlphaWalker -name \"*.jir\" -not -path \"*/site-packages/*\" -delete)",
       "Bash(find /Users/Lucas/AlphaWalker -maxdepth 3 -name \"*.jir\" -not -path \"*/site-packages/*\" -delete)",
-      "Bash(time /opt/homebrew/Caskroom/miniconda/base/bin/python api/_jac_worker_main.py [\"\"NVDA\"\"])"
+      "Bash(time /opt/homebrew/Caskroom/miniconda/base/bin/python api/_jac_worker_main.py [\"\"NVDA\"\"])",
+      "Bash(curl -s -X POST http://localhost:8000/v1/analyze-tickers -H \"Content-Type: application/json\" -d '{\"\"tickers\"\":[\"\"AAPL\"\"]}')",
+      "Bash(curl -s https://openrouter.ai/api/v1/auth/key -H \"Authorization: Bearer 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\")",
+      "Bash(python3 -m json.tool)"
     ]
   }
 }

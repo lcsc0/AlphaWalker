@@ -603,18 +603,21 @@ export default function App() {
     setLoading(true)
     setError('')
     try {
-      const resp = await fetch(`${API_BASE}/v1/analyze-tickers`, {
+      const r = await fetch(`${API_BASE}/v1/analyze-tickers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tickers }),
         signal: abortCtrl.current.signal
-      }).then(r => r.json())
+      })
+      const resp = await r.json()
 
-      if (resp.status === 'success') {
+      if (r.ok && resp.status === 'success') {
         setResults(resp.data || [])
         setPortfolioMeta(resp.portfolio_meta || null)
       } else {
-        setError('Analysis failed')
+        const detail = resp.detail || resp.message || 'Analysis failed'
+        // Extract the key first-line of the error (strip long tracebacks)
+        setError(detail.split('\n')[0])
       }
     } catch (e) {
       if (e.name !== 'AbortError') setError('Failed to connect to API: ' + e.message)
