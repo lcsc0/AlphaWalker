@@ -25,6 +25,7 @@ import from api.query_bridge { run_query }
 import from api.service { AnalysisService }
 import from api.storage { RunStorage }
 import from api.insforge_client { create_insforge_client }
+import from api.verdict_cache { get as cache_get, set_verdict as cache_set }
 
 class HoldingIn(BaseModel) {
     has ticker: str;
@@ -134,15 +135,41 @@ def _analyze_tickers_response(body: AnalyzeTickersIn) -> dict {
             detail="Provide at least one non-empty ticker."
         );
     }
-    try {
-        rows_raw = run_jac_pipeline(tickers);
-    } except Exception as exc {
-        raise HTTPException(status_code=502, detail=str(exc));
+
+    # Check in-memory cache — skip pipeline for tickers analyzed within the last 12 hours
+    cached: dict = {};
+    for t in tickers {
+        hit = cache_get(t);
+        if hit is not None {
+            cached[t] = hit;
+        }
+    }
+    fresh_tickers = [t for t in tickers if t not in cached];
+
+    rows_raw: list[dict] = [];
+    if len(fresh_tickers) > 0 {
+        try {
+            rows_raw = run_jac_pipeline(fresh_tickers);
+        } except Exception as exc {
+            raise HTTPException(status_code=502, detail=str(exc));
+        }
+    }
+
+    # Merge: fresh results + cached, preserving original ticker order
+    fresh_map: dict = {};
+    for r in rows_raw {
+        if isinstance(r, dict) and r.get("ticker") {
+            row = _row_with_confidence(r);
+            fresh_map[r["ticker"]] = row;
+            cache_set(r["ticker"], row);  # store in 12h TTL cache
+        }
     }
     data: list[dict] = [];
-    for r in rows_raw {
-        if isinstance(r, dict) {
-            data.append(_row_with_confidence(r));
+    for t in tickers {
+        if t in fresh_map {
+            data.append(fresh_map[t]);
+        } elif t in cached {
+            data.append(cached[t]);
         }
     }
     portfolio_meta: dict | None = None;
@@ -153,31 +180,35 @@ def _analyze_tickers_response(body: AnalyzeTickersIn) -> dict {
         logging.getLogger("api.main").warning("Meta agent failed (non-fatal): %s", meta_exc);
     }
 
-    if insforge_client is not None and len(data) > 0 {
-        insforge_row = insforge_client.insert_analysis_run({
-            "tickers": tickers,
-            "status": "completed",
-            "results": data
-        });
-        if insforge_row is not None and "id" in insforge_row {
-            insforge_run_id = insforge_row["id"];
-            verdicts: list[dict] = [];
-            for d in data {
-                verdicts.append({
-                    "run_id": insforge_run_id,
-                    "ticker": d.get("ticker", ""),
-                    "verdict": d.get("verdict", ""),
-                    "judge_confidence": d.get("judge_confidence", 0),
-                    "bull_confidence": d.get("bull_confidence", 0),
-                    "bear_confidence": d.get("bear_confidence", 0),
-                    "rationale": d.get("rationale", ""),
-                    "condition": d.get("condition", ""),
-                    "bull_argument": d.get("bull_argument", ""),
-                    "bear_argument": d.get("bear_argument", "")
-                });
-            }
-            if len(verdicts) > 0 {
-                insforge_client.insert_ticker_verdicts(verdicts);
+    # Only persist fresh results — cached verdicts are already in the DB
+    if insforge_client is not None and len(fresh_tickers) > 0 {
+        fresh_data = [d for d in data if d.get("ticker", "") in fresh_map];
+        if len(fresh_data) > 0 {
+            insforge_row = insforge_client.insert_analysis_run({
+                "tickers": tickers,
+                "status": "completed",
+                "results": data
+            });
+            if insforge_row is not None and "id" in insforge_row {
+                insforge_run_id = insforge_row["id"];
+                verdicts: list[dict] = [];
+                for d in fresh_data {
+                    verdicts.append({
+                        "run_id": insforge_run_id,
+                        "ticker": d.get("ticker", ""),
+                        "verdict": d.get("verdict", ""),
+                        "judge_confidence": d.get("judge_confidence", 0),
+                        "bull_confidence": d.get("bull_confidence", 0),
+                        "bear_confidence": d.get("bear_confidence", 0),
+                        "rationale": d.get("rationale", ""),
+                        "condition": d.get("condition", ""),
+                        "bull_argument": d.get("bull_argument", ""),
+                        "bear_argument": d.get("bear_argument", "")
+                    });
+                }
+                if len(verdicts) > 0 {
+                    insforge_client.insert_ticker_verdicts(verdicts);
+                }
             }
         }
     }

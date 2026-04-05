@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, LineChart, Line, RadialBarChart, RadialBar
@@ -541,6 +541,7 @@ export default function App() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [portfolios, setPortfolios] = useState([])
   const [selectedPid, setSelectedPid] = useState('')
+  const abortCtrl = useRef(null)
 
   const loadPortfolios = () => {
     insforge.database.from('portfolios').select('*').order('created_at', { ascending: false })
@@ -571,13 +572,15 @@ export default function App() {
     const tickers = raw.split(',').map(t => t.trim().toUpperCase()).filter(t => t.length > 0)
     if (tickers.length === 0) return
 
+    abortCtrl.current = new AbortController()
     setLoading(true)
     setError('')
     try {
       const resp = await fetch(`${API_BASE}/v1/analyze-tickers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tickers })
+        body: JSON.stringify({ tickers }),
+        signal: abortCtrl.current.signal
       }).then(r => r.json())
 
       if (resp.status === 'success') {
@@ -587,9 +590,16 @@ export default function App() {
         setError('Analysis failed')
       }
     } catch (e) {
-      setError('Failed to connect to API: ' + e.message)
+      if (e.name !== 'AbortError') setError('Failed to connect to API: ' + e.message)
     }
     setLoading(false)
+    abortCtrl.current = null
+  }
+
+  const cancelAnalysis = () => {
+    abortCtrl.current?.abort()
+    setLoading(false)
+    setError('')
   }
 
   const onPortfolioChange = (e) => {
@@ -659,10 +669,16 @@ export default function App() {
             <button onClick={analyzeTickers} disabled={loading}
               style={{
                 padding: '10px 28px', backgroundColor: loading ? T.textDim : T.accent,
-                color: 'white', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: 14
+                color: 'white', border: 'none', borderRadius: 10, cursor: loading ? 'default' : 'pointer', fontWeight: 700, fontSize: 14
               }}>
               {loading ? 'Analyzing...' : 'Analyze'}
             </button>
+            {loading && (
+              <button onClick={cancelAnalysis}
+                style={{ padding: '10px 20px', backgroundColor: 'transparent', color: '#f87171', border: '1px solid rgba(248,113,113,0.4)', borderRadius: 10, cursor: 'pointer', fontWeight: 600, fontSize: 14 }}>
+                Cancel
+              </button>
+            )}
           </div>
         </div>
       )}

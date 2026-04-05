@@ -1,8 +1,9 @@
-"""Thin httpx wrapper for Insforge REST API writes."""
+"""Thin httpx wrapper for Insforge REST API reads and writes."""
 
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timedelta, timezone
 
 import httpx
 
@@ -51,6 +52,45 @@ class InsforgeClient:
             resp.raise_for_status()
         except Exception as exc:
             logger.warning("Failed to update analysis_run %s: %s", run_id, exc)
+
+    def fetch_recent_verdicts(
+        self, tickers: list[str], hours: float = 12.0
+    ) -> dict[str, dict]:
+        """Return the most recent cached verdict per ticker if created within `hours`.
+
+        Returns a dict mapping ticker -> verdict row. Missing tickers are absent.
+        Logs and returns {} on any failure so callers always get a safe fallback.
+        """
+        if not tickers:
+            return {}
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
+        ticker_filter = "in.(" + ",".join(tickers) + ")"
+        try:
+            resp = self._http.get(
+                "/ticker_verdicts",
+                params={
+                    "ticker": ticker_filter,
+                    "created_at": f"gte.{cutoff}",
+                    "order": "created_at.desc",
+                    "select": "ticker,verdict,judge_confidence,bull_confidence,bear_confidence,rationale,condition,bull_argument,bear_argument",
+                },
+            )
+            resp.raise_for_status()
+            rows = resp.json()
+        except Exception as exc:
+            logger.warning("Cache lookup failed (will run fresh): %s", exc)
+            return {}
+
+        if not isinstance(rows, list):
+            return {}
+
+        # Keep only the most recent row per ticker (rows already ordered desc)
+        cache: dict[str, dict] = {}
+        for row in rows:
+            t = row.get("ticker", "")
+            if t and t not in cache:
+                cache[t] = row
+        return cache
 
     def insert_ticker_verdicts(self, verdicts: list[dict]) -> None:
         """Insert rows into ticker_verdicts. Logs and swallows errors."""
