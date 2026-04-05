@@ -30,8 +30,8 @@ watchdog = ">=3.0.0"
 [plugins.byllm]
 
 [plugins.byllm.model]
-default_model = "ollama_chat/llama3.2"
-api_key = "ollama"
+default_model = "openrouter/anthropic/claude-3.5-sonnet"
+api_key = "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"
 
 [plugins.byllm.call_params]
 temperature = 0.3
