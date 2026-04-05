@@ -65,18 +65,22 @@ obj SubmittedRun {
 class AnalysisService {
     has storage: RunStorage;
     has engine: Any;
+    has insforge: Any | None;
     has executor: ThreadPoolExecutor;
     has _run_locks: dict[str, threading.Lock];
+    has _insforge_ids: dict[str, str];
 
-    def __init__(self: AnalysisService, storage: RunStorage, engine: Any | None = None) {
+    def __init__(self: AnalysisService, storage: RunStorage, engine: Any | None = None, insforge: Any | None = None) {
         self.storage = storage;
         if engine is not None {
             self.engine = engine;
         } else {
             self.engine = _select_engine();
         }
+        self.insforge = insforge;
         self.executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="alphawalker");
         self._run_locks = {};
+        self._insforge_ids = {};
     }
 
     def shutdown(self: AnalysisService) {
@@ -133,6 +137,16 @@ class AnalysisService {
         );
         self.storage.create_run(record);
 
+        if self.insforge is not None {
+            tickers = [h.ticker for h in normalized_holdings];
+            insforge_row = self.insforge.insert_analysis_run(
+                {"tickers": tickers, "status": "queued", "results": {}}
+            );
+            if insforge_row is not None and "id" in insforge_row {
+                self._insforge_ids[run_id] = insforge_row["id"];
+            }
+        }
+
         if normalization_message is not None and normalization_message != "" {
             self.storage.append_event(
                 run_id,
@@ -177,18 +191,49 @@ class AnalysisService {
                 progress=0.05,
                 started_at=utc_now_iso()
             );
+            if self.insforge is not None and run_id in self._insforge_ids {
+                self.insforge.update_analysis_run(
+                    self._insforge_ids[run_id],
+                    {"status": "running"}
+                );
+            }
             try {
                 def _emit(evt: EngineEvent) {
                     self._emit_event(run_id, evt);
                 }
                 result = self.engine.analyze(request, _emit);
+                result_dict = result.to_dict();
                 self.storage.update_run(
                     run_id,
                     status="completed",
                     progress=1.0,
                     finished_at=utc_now_iso(),
-                    result=result.to_dict()
+                    result=result_dict
                 );
+                if self.insforge is not None and run_id in self._insforge_ids {
+                    insforge_id = self._insforge_ids[run_id];
+                    self.insforge.update_analysis_run(
+                        insforge_id,
+                        {"status": "completed", "results": result_dict}
+                    );
+                    verdicts = [];
+                    for h in result_dict.get("holdings", []) {
+                        verdicts.append({
+                            "run_id": insforge_id,
+                            "ticker": h.get("ticker", ""),
+                            "verdict": h.get("sentiment", ""),
+                            "judge_confidence": h.get("risk_score", 0),
+                            "rationale": h.get("summary", ""),
+                            "bull_confidence": 0,
+                            "bear_confidence": 0,
+                            "bull_argument": "",
+                            "bear_argument": "",
+                            "condition": ""
+                        });
+                    }
+                    self.insforge.insert_ticker_verdicts(verdicts);
+                    del self._insforge_ids[run_id];
+                }
             } except Exception as exc {
                 error = AnalysisError(
                     code="analysis_failed",
@@ -211,6 +256,14 @@ class AnalysisService {
                     finished_at=utc_now_iso(),
                     error=error
                 );
+                if self.insforge is not None and run_id in self._insforge_ids {
+                    insforge_id = self._insforge_ids[run_id];
+                    self.insforge.update_analysis_run(
+                        insforge_id,
+                        {"status": "failed"}
+                    );
+                    del self._insforge_ids[run_id];
+                }
             }
         }
     }
