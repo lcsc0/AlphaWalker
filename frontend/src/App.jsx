@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import Landing from './Landing.jsx'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, LineChart, Line, RadialBarChart, RadialBar
@@ -641,6 +642,7 @@ function RebalancePick({ pick, onAnalyze }) {
 // ─── Main App ─────────────────────────────────────────────────
 
 export default function App() {
+  const [showLanding, setShowLanding] = useState(true)
   const [tab, setTab] = useState('dashboard')
   const [tickerInput, setTickerInput] = useState('')
   const [results, setResults] = useState(SAMPLE_RESULTS)
@@ -677,6 +679,10 @@ export default function App() {
       })
       .catch(() => loadPortfolios())
   }, [])
+
+  if (showLanding) {
+    return <Landing onGetStarted={() => setShowLanding(false)} />
+  }
 
   const analyzeTickers = async () => {
     const raw = tickerInput.trim()
