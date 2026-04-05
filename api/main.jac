@@ -151,12 +151,20 @@ def _analyze_tickers_response(body: AnalyzeTickersIn) -> dict {
         );
     }
 
-    # Check in-memory cache — skip pipeline for tickers analyzed within the last 12 hours
+    # Check cache — skip pipeline for tickers analyzed within the last 12 hours.
+    # Prefer Insforge (persists across restarts); fall back to in-memory cache.
     cached: dict = {};
+    if insforge_client is not None {
+        for (ticker, row) in insforge_client.fetch_recent_verdicts(tickers).items() {
+            cached[ticker] = _row_with_confidence(row);
+        }
+    }
     for t in tickers {
-        hit = cache_get(t);
-        if hit is not None {
-            cached[t] = hit;
+        if t not in cached {
+            hit = cache_get(t);
+            if hit is not None {
+                cached[t] = hit;
+            }
         }
     }
     fresh_tickers = [t for t in tickers if t not in cached];
