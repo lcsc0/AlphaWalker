@@ -17,13 +17,17 @@ def json_str(s: str) -> str {
 }
 
 """Run bull/bear coalitions + judge per ticker; return a JSON array string for Python to parse."""
-def run_pipeline_for_tickers(tickers: list[str]) -> str {
+def run_pipeline_for_tickers(tickers: list[str], signals_json: str = "{}") -> str {
+    import json;
+    signals_map = json.loads(signals_json);
+
     row_strings: list[str] = [];
     portfolio = PortfolioNode(name="AlphaWalker API");
     root() ++> portfolio;
 
     for ticker in tickers {
         asset = Asset(ticker=ticker);
+        asset.quant_signals = signals_map.get(ticker, "");
         portfolio +>:BelongsToPortfolio:+> asset;
 
         asset spawn BullCoalitionWalker(ticker=ticker);

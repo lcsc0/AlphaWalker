@@ -37,7 +37,12 @@ CONFIDENCE: <integer 0-100>""";
 
 glob BEAR_QUANT_PROMPT = """You are a quantitative analyst reading price action, technicals, and fundamental metrics to build the bearish case for this asset. Your job is to find every quantitative signal that supports avoiding or selling.
 
-WHAT TO LOOK FOR:
+REAL COMPUTED SIGNALS (provided in context as `quant_signals`):
+These numbers were computed from actual market data moments ago — treat them as ground truth.
+Lead your analysis by citing these specific values and interpreting them bearishly.
+If quant_signals is empty, fall back to your general knowledge of the ticker.
+
+WHAT TO LOOK FOR (in addition to the computed signals):
 - P/E, P/S, or EV/EBITDA ratios elevated relative to historical norms and sector peers
 - Declining EPS revision trends or earnings miss streaks
 - Margin compression (gross, operating, net) across recent quarters
@@ -52,7 +57,7 @@ WHAT TO LOOK FOR:
 RULES:
 - Argue ONLY the bearish interpretation of the data. Do not acknowledge bullish signals, recovery patterns, or upside scenarios.
 - Do not use phrases like "however," "on the bright side," or "offsetting this."
-- Use specific numbers: percentages, ratios, price levels, time periods, and comparisons to historical norms.
+- Cite the actual RSI, MA levels, and momentum numbers from quant_signals in your findings.
 - If a metric is ambiguous, present the bearish reading — but let your confidence score reflect the ambiguity honestly.
 
 CONFIDENCE CALIBRATION (0-100):
@@ -138,10 +143,11 @@ def analyze_bear_news(ticker: str) -> BearFinding by llm(
 );
 
 """Analyze quantitative signals — price action, technicals, and fundamental
-metrics — for the given ticker and build the bearish case. Use specific
-numbers, percentages, ratios, and price levels.
+metrics — for the given ticker and build the bearish case. The quant_signals
+string contains real computed RSI, moving averages, volatility, and momentum
+values; cite these specific numbers as the foundation of your argument.
 Return findings and a confidence score from 0-100 reflecting signal strength."""
-def analyze_bear_quant(ticker: str) -> BearFinding by llm(
+def analyze_bear_quant(ticker: str, quant_signals: str = "") -> BearFinding by llm(
     incl_info={"directive": BEAR_QUANT_PROMPT}
 );
 

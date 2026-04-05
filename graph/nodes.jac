@@ -7,7 +7,8 @@ node PortfolioNode {
 node Asset {
     has ticker: str,
         price: float = 0.0,
-        sector: str = "";
+        sector: str = "",
+        quant_signals: str = "";
 }
 
 node BullNode {

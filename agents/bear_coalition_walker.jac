@@ -19,7 +19,7 @@ walker BearCoalitionWalker {
         news_agent = BearNewsAgent(ticker=self.ticker);
         bear spawn news_agent;
 
-        quant_agent = BearQuantAgent(ticker=self.ticker);
+        quant_agent = BearQuantAgent(ticker=self.ticker, quant_signals=here.quant_signals);
         bear spawn quant_agent;
 
         macro_agent = BearMacroAgent(ticker=self.ticker);

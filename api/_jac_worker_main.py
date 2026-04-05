@@ -29,6 +29,13 @@ def main() -> None:
         print("[]", end="")
         return
 
+    # Compute technical signals before entering Jac runtime so quant walkers
+    # receive real RSI/MA/momentum numbers rather than relying on LLM knowledge.
+    from api.technical_signals import compute_signals_safe
+
+    signals_map = {t: compute_signals_safe(t) for t in tickers}
+    signals_json = json.dumps(signals_map)
+
     import jaclang  # noqa: F401 — registers .jac import hook
 
     from jaclang.jac0core.runtime import JacRuntime as Jac
@@ -37,7 +44,7 @@ def main() -> None:
     import importlib
 
     mod = importlib.import_module("alphawalker_pipeline")
-    raw: str = mod.run_pipeline_for_tickers(tickers)
+    raw: str = mod.run_pipeline_for_tickers(tickers, signals_json)
     sys.stdout.write(raw)
 
 

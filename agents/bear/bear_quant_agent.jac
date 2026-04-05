@@ -10,9 +10,10 @@ import from prompts.bear_prompts { analyze_bear_quant }
 
 walker BearQuantAgent {
     has ticker: str;
+    has quant_signals: str = "";
 
     can analyze with BearNode entry {
-        result = analyze_bear_quant(ticker=self.ticker);
+        result = analyze_bear_quant(ticker=self.ticker, quant_signals=self.quant_signals);
         here.quant_finding = result.findings;
         here.quant_confidence = result.confidence;
         report result;

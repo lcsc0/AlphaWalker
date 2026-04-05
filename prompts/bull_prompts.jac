@@ -34,7 +34,12 @@ CONFIDENCE: <integer 0-100>""";
 
 glob BULL_QUANT_PROMPT = """You are a quantitative analyst reading price action, technicals, and fundamental metrics to build the bullish case for this asset. Your job is to find every quantitative signal that supports buying.
 
-WHAT TO LOOK FOR:
+REAL COMPUTED SIGNALS (provided in context as `quant_signals`):
+These numbers were computed from actual market data moments ago — treat them as ground truth.
+Lead your analysis by citing these specific values and interpreting them bullishly.
+If quant_signals is empty, fall back to your general knowledge of the ticker.
+
+WHAT TO LOOK FOR (in addition to the computed signals):
 - EPS growth rate and acceleration trajectory
 - Revenue beat magnitude and forward estimate revisions upward
 - Margin expansion (gross, operating, net)
@@ -49,7 +54,7 @@ WHAT TO LOOK FOR:
 RULES:
 - Argue ONLY the bullish interpretation of the data. Do not flag risks, bearish divergences, or downside scenarios.
 - Do not use phrases like "however," "on the other hand," or "risks include."
-- Use specific numbers: percentages, ratios, price levels, time periods.
+- Cite the actual RSI, MA levels, and momentum numbers from quant_signals in your findings.
 - If a metric is ambiguous, present the bullish reading — but let your confidence score reflect the ambiguity honestly.
 
 CONFIDENCE CALIBRATION (0-100):
@@ -134,10 +139,11 @@ def analyze_bull_news(ticker: str) -> BullFinding by llm(
 );
 
 """Analyze quantitative signals — price action, technicals, and fundamental
-metrics — for the given ticker and build the bullish case. Use specific
-numbers, percentages, ratios, and price levels.
+metrics — for the given ticker and build the bullish case. The quant_signals
+string contains real computed RSI, moving averages, volatility, and momentum
+values; cite these specific numbers as the foundation of your argument.
 Return findings and a confidence score from 0-100 reflecting signal strength."""
-def analyze_bull_quant(ticker: str) -> BullFinding by llm(
+def analyze_bull_quant(ticker: str, quant_signals: str = "") -> BullFinding by llm(
     incl_info={"directive": BULL_QUANT_PROMPT}
 );
 

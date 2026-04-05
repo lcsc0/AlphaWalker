@@ -19,7 +19,7 @@ walker BullCoalitionWalker {
         news_agent = BullNewsAgent(ticker=self.ticker);
         bull spawn news_agent;
 
-        quant_agent = BullQuantAgent(ticker=self.ticker);
+        quant_agent = BullQuantAgent(ticker=self.ticker, quant_signals=here.quant_signals);
         bull spawn quant_agent;
 
         macro_agent = BullMacroAgent(ticker=self.ticker);
