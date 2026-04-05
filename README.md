@@ -17,27 +17,38 @@ The core insight is that LLMs are better at *arguing a position* than at hedging
 **Prerequisites:** Python 3.10+, Node 18+ (via nvm), an `OPENAI_API_KEY`.
 
 ```bash
-# 1. Install Python dependencies
+# 1. Create and activate a virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 2. Install Python dependencies
 pip install -r requirements.txt
 
-# 2. Install frontend dependencies
+# 3. Install frontend dependencies
 cd frontend && npm install && cd ..
 
-# 3. Set your LLM key
-export OPENAI_API_KEY=sk-...
+# 4. Configure environment variables
+cp .env.example .env   # then edit .env with your keys
+```
 
-# 4. Start everything
+At minimum, set `OPENAI_API_KEY` in `.env`. See `.env.example` for all available options.
+
+```bash
+# 5. Start everything
 ./start.sh
 ```
 
 - Backend → `http://localhost:8000`
 - Frontend → `http://localhost:3000`
 
+> `start.sh` activates the virtual environment and loads `.env` automatically.
+
 **Manual start (two terminals):**
 
 ```bash
-# Terminal 1 — backend
-ALPHAWALKER_API_KEY=dev-secret uvicorn api.main:app --host 0.0.0.0 --port 8000
+# Terminal 1 — backend (with venv active)
+source .venv/bin/activate
+uvicorn api.main:app --host 0.0.0.0 --port 8000
 
 # Terminal 2 — frontend
 cd frontend && npm run dev -- --port 3000
@@ -46,6 +57,7 @@ cd frontend && npm run dev -- --port 3000
 **CLI only (no frontend needed):**
 
 ```bash
+source .venv/bin/activate
 jac run main.jac
 ```
 

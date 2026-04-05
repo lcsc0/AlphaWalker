@@ -11,12 +11,23 @@ cd "$SCRIPT_DIR"
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 
+# Activate virtual environment if present
+if [ -f "$SCRIPT_DIR/.venv/bin/activate" ]; then
+    # shellcheck disable=SC1091
+    source "$SCRIPT_DIR/.venv/bin/activate"
+fi
+
 PYTHON=/opt/homebrew/Caskroom/miniconda/base/bin/python3
 UVICORN=/opt/homebrew/Caskroom/miniconda/base/bin/uvicorn
 
-# Fallback to whatever python3/uvicorn is on PATH
-command -v "$UVICORN" &>/dev/null || UVICORN=uvicorn
-command -v "$PYTHON" &>/dev/null || PYTHON=python3
+# Prefer venv binaries if active, then fall back to system PATH
+if [ -f "$SCRIPT_DIR/.venv/bin/uvicorn" ]; then
+    UVICORN="$SCRIPT_DIR/.venv/bin/uvicorn"
+    PYTHON="$SCRIPT_DIR/.venv/bin/python3"
+else
+    command -v "$UVICORN" &>/dev/null || UVICORN=uvicorn
+    command -v "$PYTHON" &>/dev/null || PYTHON=python3
+fi
 
 # Colors
 GREEN='\033[0;32m'
