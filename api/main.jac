@@ -19,7 +19,9 @@ import from api.models {
     PortfolioInput
 }
 import from api.jac_bridge { run_jac_pipeline }
+import from api.meta_bridge { run_meta }
 import from api.prices { fetch_historical_prices }
+import from api.query_bridge { run_query }
 import from api.service { AnalysisService }
 import from api.storage { RunStorage }
 import from api.insforge_client { create_insforge_client }
@@ -53,6 +55,11 @@ class AnalysisRequestIn(BaseModel) {
 
 class AnalyzeTickersIn(BaseModel) {
     has tickers: list[str];
+}
+
+class QueryIn(BaseModel) {
+    has question: str;
+    has results: list[dict];
 }
 
 glob APP_ROOT = Path(__file__).resolve().parent.parent;
@@ -138,6 +145,14 @@ def _analyze_tickers_response(body: AnalyzeTickersIn) -> dict {
             data.append(_row_with_confidence(r));
         }
     }
+    portfolio_meta: dict | None = None;
+    try {
+        portfolio_meta = run_meta(data);
+    } except Exception as meta_exc {
+        import logging;
+        logging.getLogger("api.main").warning("Meta agent failed (non-fatal): %s", meta_exc);
+    }
+
     if insforge_client is not None and len(data) > 0 {
         insforge_row = insforge_client.insert_analysis_run({
             "tickers": tickers,
@@ -166,7 +181,7 @@ def _analyze_tickers_response(body: AnalyzeTickersIn) -> dict {
             }
         }
     }
-    return {"status": "success", "data": data};
+    return {"status": "success", "data": data, "portfolio_meta": portfolio_meta};
 }
 
 def to_request(payload: AnalysisRequestIn) -> AnalysisRequest {
@@ -252,6 +267,22 @@ def get_analysis_events(
         "events": [event.to_dict() for event in events],
         "next_cursor": next_cursor
     };
+}
+
+@app.post("/v1/query", dependencies=[Depends(require_api_key)])
+def query_portfolio(body: QueryIn) -> dict {
+    if not body.question or body.question.strip() == "" {
+        raise HTTPException(status_code=400, detail="question must be a non-empty string.");
+    }
+    if not body.results or len(body.results) == 0 {
+        raise HTTPException(status_code=400, detail="results must be a non-empty list.");
+    }
+    try {
+        answer = run_query(body.question.strip(), body.results);
+    } except Exception as exc {
+        raise HTTPException(status_code=502, detail=str(exc));
+    }
+    return {"status": "success", "data": answer};
 }
 
 @app.get("/v1/historical-prices/{ticker}", dependencies=[Depends(require_api_key)])
