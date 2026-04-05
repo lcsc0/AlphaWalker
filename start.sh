@@ -28,6 +28,14 @@ echo -e "  ${BLUE}Backend${NC}  → http://localhost:8000"
 echo -e "  ${BLUE}Frontend${NC} → http://localhost:3000"
 echo ""
 
+# Load .env if present
+if [ -f "$SCRIPT_DIR/.env" ]; then
+    set -a
+    # shellcheck disable=SC1091
+    source "$SCRIPT_DIR/.env"
+    set +a
+fi
+
 # Start backend
 "$UVICORN" api.main:app --host 0.0.0.0 --port 8000 &
 BACKEND_PID=$!

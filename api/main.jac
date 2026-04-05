@@ -5,6 +5,7 @@ with SQLite-backed run state for polling. See `DEPLOYMENT.md` for env vars.
 """
 
 import os;
+import from datetime { datetime, timezone }
 import from pathlib { Path }
 import from typing { Annotated }
 import from fastapi { Depends, FastAPI, Header, HTTPException, Query }
@@ -198,10 +199,12 @@ def _analyze_tickers_response(body: AnalyzeTickersIn) -> dict {
     if insforge_client is not None and len(fresh_tickers) > 0 {
         fresh_data = [d for d in data if d.get("ticker", "") in fresh_map];
         if len(fresh_data) > 0 {
+            now_iso = datetime.now(timezone.utc).isoformat();
             insforge_row = insforge_client.insert_analysis_run({
                 "tickers": tickers,
                 "status": "completed",
-                "results": data
+                "results": data,
+                "created_at": now_iso
             });
             if insforge_row is not None and "id" in insforge_row {
                 insforge_run_id = insforge_row["id"];
@@ -217,7 +220,8 @@ def _analyze_tickers_response(body: AnalyzeTickersIn) -> dict {
                         "rationale": d.get("rationale", ""),
                         "condition": d.get("condition", ""),
                         "bull_argument": d.get("bull_argument", ""),
-                        "bear_argument": d.get("bear_argument", "")
+                        "bear_argument": d.get("bear_argument", ""),
+                        "created_at": now_iso
                     });
                 }
                 if len(verdicts) > 0 {
