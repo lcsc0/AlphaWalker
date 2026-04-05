@@ -23,6 +23,15 @@ import from api.storage { RunStorage }
 
 glob logger = logging.getLogger("api.service");
 
+def _make_portfolio_key(holdings: list[Holding]) -> str {
+    """Canonical string key for a normalized holding list, used for cache lookups."""
+    parts: list[str] = [];
+    for h in holdings {
+        parts.append(h.ticker + ":" + ("%.6f" % h.weight));
+    }
+    return ",".join(sorted(parts));
+}
+
 def _isclose(a: float, b: float, rel_tol: float, abs_tol: float) -> bool {
     diff: float = abs(a - b);
     if diff <= abs_tol {
@@ -103,8 +112,8 @@ class AnalysisService {
         (normalized_holdings, normalization_message) = self._normalize_holdings(
             request.portfolio.holdings
         );
-        created_at = utc_now_iso();
-        run_id = "run_" + uuid.uuid4().hex[0:12];
+        portfolio_key = _make_portfolio_key(normalized_holdings);
+
         cc: ClientContext;
         if request.client_context is not None {
             cc = request.client_context;
@@ -125,6 +134,36 @@ class AnalysisService {
         }
         total_weight = _round6(tw);
 
+        # Check Insforge for a recent completed run of the same portfolio (12h cache)
+        if self.insforge is not None {
+            cached = self.insforge.fetch_recent_portfolio_run(portfolio_key);
+            if cached is not None and cached.get("results") {
+                logger.info("Portfolio cache hit for key %s", portfolio_key);
+                now = utc_now_iso();
+                run_id = "run_" + uuid.uuid4().hex[0:12];
+                record = RunRecord(
+                    run_id=run_id,
+                    status="completed",
+                    progress=1.0,
+                    portfolio_summary=PortfolioSummary(
+                        holdings_count=len(normalized_holdings),
+                        total_weight=total_weight
+                    ),
+                    request_payload=normalized_request.to_dict(),
+                    normalized_holdings=[h.to_dict() for h in normalized_holdings],
+                    created_at=now,
+                    started_at=now,
+                    finished_at=now,
+                    result=cached["results"]
+                );
+                self.storage.create_run(record);
+                return SubmittedRun(run_id=run_id, status="completed", created_at=now);
+            }
+        }
+
+        created_at = utc_now_iso();
+        run_id = "run_" + uuid.uuid4().hex[0:12];
+
         record = RunRecord(
             run_id=run_id,
             status="queued",
@@ -141,8 +180,9 @@ class AnalysisService {
 
         if self.insforge is not None {
             tickers = [h.ticker for h in normalized_holdings];
+            now_iso = utc_now_iso();
             insforge_row = self.insforge.insert_analysis_run(
-                {"tickers": tickers, "status": "queued", "results": {}}
+                {"tickers": tickers, "status": "queued", "results": {}, "portfolio_key": portfolio_key, "created_at": now_iso}
             );
             if insforge_row is not None and "id" in insforge_row {
                 with self._insforge_ids_lock {

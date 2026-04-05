@@ -92,6 +92,35 @@ class InsforgeClient:
                 cache[t] = row
         return cache
 
+    def fetch_recent_portfolio_run(
+        self, portfolio_key: str, hours: float = 12.0
+    ) -> dict | None:
+        """Return the most recent completed run for this portfolio key if within `hours`.
+
+        Returns the full analysis_runs row (including `results`) or None.
+        Logs and returns None on any failure so callers always get a safe fallback.
+        """
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
+        try:
+            resp = self._http.get(
+                "/analysis_runs",
+                params={
+                    "portfolio_key": f"eq.{portfolio_key}",
+                    "status": "eq.completed",
+                    "created_at": f"gte.{cutoff}",
+                    "order": "created_at.desc",
+                    "limit": "1",
+                },
+            )
+            resp.raise_for_status()
+            rows = resp.json()
+            if isinstance(rows, list) and len(rows) > 0:
+                return rows[0]
+            return None
+        except Exception as exc:
+            logger.warning("Portfolio cache lookup failed (will run fresh): %s", exc)
+            return None
+
     def insert_ticker_verdicts(self, verdicts: list[dict]) -> None:
         """Insert rows into ticker_verdicts. Logs and swallows errors."""
         if len(verdicts) == 0:
