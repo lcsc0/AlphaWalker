@@ -414,12 +414,128 @@ function RunHistory({ onSelectRun }) {
   )
 }
 
+// ─── PortfolioInsights ────────────────────────────────────────
+
+function PortfolioInsights({ meta }) {
+  if (!meta) return null
+  return (
+    <div style={{ backgroundColor: T.surface, borderRadius: 12, padding: 20, marginBottom: 24, border: `1px solid ${T.border}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: T.text }}>Portfolio Insights</span>
+        {meta.correlated_theme && meta.correlated_theme.trim() && (
+          <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 12, backgroundColor: 'rgba(99,102,241,0.15)', color: T.accent, border: `1px solid rgba(99,102,241,0.3)` }}>
+            Correlated Theme
+          </span>
+        )}
+        {meta.hedging_gaps && meta.hedging_gaps.trim() && meta.hedging_gaps.toLowerCase() !== 'none' && (
+          <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 12, backgroundColor: 'rgba(234,179,8,0.12)', color: '#eab308', border: `1px solid rgba(234,179,8,0.3)` }}>
+            Hedging Gaps
+          </span>
+        )}
+      </div>
+      <p style={{ margin: '0 0 10px', fontSize: 13, color: T.textMuted, lineHeight: 1.6 }}>{meta.annotation}</p>
+      {meta.correlated_theme && meta.correlated_theme.trim() && (
+        <div style={{ marginBottom: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: T.textDim }}>Correlated Theme: </span>
+          <span style={{ fontSize: 12, color: T.textMuted }}>{meta.correlated_theme}</span>
+        </div>
+      )}
+      {meta.hedging_gaps && meta.hedging_gaps.trim() && meta.hedging_gaps.toLowerCase() !== 'none' && (
+        <div style={{ marginBottom: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: T.textDim }}>Hedging Gaps: </span>
+          <span style={{ fontSize: 12, color: T.textMuted }}>{meta.hedging_gaps}</span>
+        </div>
+      )}
+      {meta.portfolio_conviction && meta.portfolio_conviction.trim() && (
+        <div>
+          <span style={{ fontSize: 12, fontWeight: 600, color: T.textDim }}>Conviction: </span>
+          <span style={{ fontSize: 12, color: T.textMuted }}>{meta.portfolio_conviction}</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── PortfolioQA ──────────────────────────────────────────────
+
+function PortfolioQA({ results }) {
+  const [question, setQuestion] = useState('')
+  const [answer, setAnswer] = useState(null)
+  const [asking, setAsking] = useState(false)
+  const [qaError, setQaError] = useState('')
+
+  const askQuestion = async () => {
+    const q = question.trim()
+    if (!q || results.length === 0) return
+    setAsking(true)
+    setAnswer(null)
+    setQaError('')
+    try {
+      const resp = await fetch(`${API_BASE}/v1/query`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q, results })
+      }).then(r => r.json())
+      if (resp.status === 'success') {
+        setAnswer(resp.data)
+      } else {
+        setQaError('Query failed')
+      }
+    } catch (e) {
+      setQaError('Failed to reach API: ' + e.message)
+    }
+    setAsking(false)
+  }
+
+  return (
+    <div style={{ backgroundColor: T.surface, borderRadius: 12, padding: 20, marginTop: 24, border: `1px solid ${T.border}` }}>
+      <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 12 }}>Ask AlphaWalker</div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input
+          value={question}
+          onChange={e => setQuestion(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && !asking && askQuestion()}
+          placeholder='e.g. "Why does AlphaWalker think I should sell TSLA?"'
+          style={{ flex: 1, padding: '10px 14px', border: `1px solid ${T.inputBorder}`, borderRadius: 8, fontSize: 13, backgroundColor: T.inputBg, color: T.text }}
+        />
+        <button onClick={askQuestion} disabled={asking || !question.trim()}
+          style={{ padding: '10px 20px', backgroundColor: asking || !question.trim() ? T.textDim : T.accent, color: 'white', border: 'none', borderRadius: 8, cursor: asking || !question.trim() ? 'default' : 'pointer', fontWeight: 600, fontSize: 13, whiteSpace: 'nowrap' }}>
+          {asking ? 'Thinking...' : 'Ask'}
+        </button>
+      </div>
+
+      {qaError && (
+        <div style={{ marginTop: 12, padding: 12, backgroundColor: 'rgba(239,68,68,0.1)', borderRadius: 8, color: '#f87171', fontSize: 13 }}>{qaError}</div>
+      )}
+
+      {answer && (
+        <div style={{ marginTop: 16 }}>
+          <p style={{ margin: '0 0 12px', fontSize: 13, color: T.text, lineHeight: 1.7 }}>{answer.answer}</p>
+          {answer.cited_tickers && answer.cited_tickers.length > 0 && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+              {answer.cited_tickers.map(t => (
+                <span key={t} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 12, backgroundColor: 'rgba(99,102,241,0.12)', color: T.accent, border: `1px solid rgba(99,102,241,0.25)` }}>{t}</span>
+              ))}
+            </div>
+          )}
+          {answer.confidence_note && answer.confidence_note.trim() && (
+            <div style={{ fontSize: 12, color: '#eab308', backgroundColor: 'rgba(234,179,8,0.08)', padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(234,179,8,0.2)' }}>
+              {answer.confidence_note}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Main App ─────────────────────────────────────────────────
 
 export default function App() {
   const [tab, setTab] = useState('dashboard')
   const [tickerInput, setTickerInput] = useState('')
   const [results, setResults] = useState(SAMPLE_RESULTS)
+  const [portfolioMeta, setPortfolioMeta] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -466,6 +582,7 @@ export default function App() {
 
       if (resp.status === 'success') {
         setResults(resp.data || [])
+        setPortfolioMeta(resp.portfolio_meta || null)
       } else {
         setError('Analysis failed')
       }
@@ -555,49 +672,51 @@ export default function App() {
 
         {error && <div style={{ padding: 16, backgroundColor: 'rgba(239,68,68,0.12)', borderRadius: 8, color: '#f87171', marginBottom: 16, border: '1px solid rgba(239,68,68,0.3)' }}>{error}</div>}
 
-        {loading && (
-          <div style={{ textAlign: 'center', padding: 60 }}>
-            <div style={{ fontSize: 18, color: T.textMuted }}>Running bull/bear analysis...</div>
-            <div style={{ fontSize: 13, color: T.textDim, marginTop: 8 }}>This may take a few minutes per ticker</div>
-          </div>
-        )}
-
         {/* ── Dashboard tab ── */}
-        {!loading && tab === 'dashboard' && (
-          <div>
-            {results.length > 0 ? (
-              <>
-                <div style={{ backgroundColor: T.surface, borderRadius: 12, padding: 24, marginBottom: 24, border: `1px solid ${T.border}` }}>
-                  <h3 style={{ margin: '0 0 16px', fontSize: 16, color: T.text }}>Confidence Overview</h3>
-                  <ResponsiveContainer width="100%" height={Math.max(200, results.length * 50)}>
-                    <BarChart data={results} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" stroke={T.border} />
-                      <XAxis type="number" domain={[0, 100]} stroke={T.textDim} tick={{ fill: T.textDim }} />
-                      <YAxis type="category" dataKey="ticker" width={60} stroke={T.textDim} tick={{ fill: T.textMuted }} />
-                      <Tooltip contentStyle={{ backgroundColor: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, color: T.text }} />
-                      <Legend wrapperStyle={{ color: T.textMuted }} />
-                      <Bar dataKey="bull_confidence" name="Bull" fill="#4ade80" />
-                      <Bar dataKey="bear_confidence" name="Bear" fill="#f87171" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-                {results.map(d => (
-                  <div key={d.ticker} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                    <div style={{ flex: 1 }}><VerdictCard data={d} /></div>
-                    <MomentumSparkline ticker={d.ticker} />
+        {tab === 'dashboard' && (
+          loading ? (
+            <div style={{ textAlign: 'center', padding: 60 }}>
+              <div style={{ fontSize: 18, color: T.textMuted }}>Running bull/bear analysis...</div>
+              <div style={{ fontSize: 13, color: T.textDim, marginTop: 8 }}>This may take a few minutes per ticker</div>
+            </div>
+          ) : (
+            <div>
+              {results.length > 0 ? (
+                <>
+                  <PortfolioInsights meta={portfolioMeta} />
+                  <div style={{ backgroundColor: T.surface, borderRadius: 12, padding: 24, marginBottom: 24, border: `1px solid ${T.border}` }}>
+                    <h3 style={{ margin: '0 0 16px', fontSize: 16, color: T.text }}>Confidence Overview</h3>
+                    <ResponsiveContainer width="100%" height={Math.max(200, results.length * 50)}>
+                      <BarChart data={results} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" stroke={T.border} />
+                        <XAxis type="number" domain={[0, 100]} stroke={T.textDim} tick={{ fill: T.textDim }} />
+                        <YAxis type="category" dataKey="ticker" width={60} stroke={T.textDim} tick={{ fill: T.textMuted }} />
+                        <Tooltip contentStyle={{ backgroundColor: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, color: T.text }} />
+                        <Legend wrapperStyle={{ color: T.textMuted }} />
+                        <Bar dataKey="bull_confidence" name="Bull" fill="#4ade80" />
+                        <Bar dataKey="bear_confidence" name="Bear" fill="#f87171" />
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
-                ))}
-              </>
-            ) : (
-              <div style={{ textAlign: 'center', padding: 80, color: T.textDim }}>
-                <div style={{ fontSize: 18 }}>Enter tickers above to run bull/bear analysis</div>
-              </div>
-            )}
-          </div>
+                  {results.map(d => (
+                    <div key={d.ticker} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                      <div style={{ flex: 1 }}><VerdictCard data={d} /></div>
+                      <MomentumSparkline ticker={d.ticker} />
+                    </div>
+                  ))}
+                  <PortfolioQA results={results} />
+                </>
+              ) : (
+                <div style={{ textAlign: 'center', padding: 80, color: T.textDim }}>
+                  <div style={{ fontSize: 18 }}>Enter tickers above to run bull/bear analysis</div>
+                </div>
+              )}
+            </div>
+          )
         )}
 
         {/* ── Analysis tab ── */}
-        {!loading && tab === 'analysis' && (
+        {tab === 'analysis' && (
           <div>
             {results.length > 0 ? (
               <>
