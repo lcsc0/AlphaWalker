@@ -31,7 +31,7 @@ watchdog = ">=3.0.0"
 
 [plugins.byllm.model]
 default_model = "ollama_chat/llama3.2"
-api_key = "ollama"
+api_key = "6a3f1562609243e096a8cbdf989b4172.7iwP5mz4VA9KOQ1fduEQ6Arl"
 
 [plugins.byllm.call_params]
 temperature = 0.3
